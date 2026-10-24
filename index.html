@@ -4,9 +4,20 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Time Tracker - Lomba Eja Kata Bahasa Indonesia</title>
-  <!-- Tailwind CSS CDN -->
-  <script src="https://cdn.tailwindcss.com"></script>
-  <!-- Google Fonts: Inter & JetBrains Mono -->
+  <!-- Local Offline-First Libraries with CDN Fallback -->
+  <script src="tailwindcss.js"></script>
+  <script>
+    if (typeof tailwind === 'undefined') {
+      document.write('<script src="https://cdn.tailwindcss.com"><\/script>');
+    }
+  </script>
+  <script src="xlsx.full.min.js"></script>
+  <script>
+    if (typeof XLSX === 'undefined') {
+      document.write('<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"><\/script>');
+    }
+  </script>
+  <!-- Google Fonts: Inter & JetBrains Mono (Fallback to system fonts offline) -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;600;700;800&display=swap" rel="stylesheet">
@@ -16,10 +27,30 @@
       theme: {
         extend: {
           fontFamily: {
-            sans: ['Inter', 'sans-serif'],
-            mono: ['JetBrains Mono', 'monospace'],
+            sans: ['Inter', '-apple-system', 'BlinkMacSystemFont', '"Segoe UI"', 'Roboto', 'sans-serif'],
+            mono: ['"JetBrains Mono"', '"Cascadia Code"', 'Consolas', '"Courier New"', 'monospace'],
           },
           colors: {
+            neutral: {
+              750: '#2b2b2b',
+              850: '#141414',
+              925: '#0a0a0a',
+              950: '#050505',
+            },
+            slate: {
+              50: '#fafafa',
+              100: '#f5f5f5',
+              200: '#e5e5e5',
+              300: '#d4d4d4',
+              400: '#a3a3a3',
+              500: '#737373',
+              600: '#525252',
+              700: '#262626',
+              800: '#141414',
+              850: '#0e0e0e',
+              900: '#070707',
+              950: '#000000',
+            },
             brand: {
               50: '#f0fdf4',
               500: '#22c55e',
@@ -32,33 +63,56 @@
     }
   </script>
   <style>
-    /* Custom Scrollbars */
+    /* Modal and popover initial hidden state */
+    #modal-config.hidden,
+    #modal-qualification.hidden,
+    #modal-comparator.hidden,
+    #modal-participants.hidden,
+    #export-dropdown-menu.hidden,
+    #comp-participants-popover.hidden,
+    #qual-final-notice.hidden {
+      display: none;
+    }
+    /* Custom Scrollbars - True Pitch Black, sharp minimal border */
     ::-webkit-scrollbar {
       width: 6px;
       height: 6px;
     }
     ::-webkit-scrollbar-track {
-      background: rgba(15, 23, 42, 0.6);
+      background: #000000;
     }
     ::-webkit-scrollbar-thumb {
-      background: rgba(51, 65, 85, 0.8);
-      border-radius: 9999px;
+      background: #262626;
+      border-radius: 2px;
     }
     ::-webkit-scrollbar-thumb:hover {
-      background: rgba(100, 116, 139, 1);
+      background: #404040;
     }
     .timer-glow-normal {
-      text-shadow: 0 0 35px rgba(99, 102, 241, 0.35);
+      text-shadow: 0 0 35px rgba(99, 102, 241, 0.25);
     }
     .timer-glow-warning {
-      text-shadow: 0 0 35px rgba(244, 63, 94, 0.7);
+      text-shadow: 0 0 35px rgba(244, 63, 94, 0.6);
+    }
+    /* Smooth Grid Boxes Background Pattern (Pure Square Boxes, No Dots) */
+    .bg-grid-boxes {
+      background-size: 36px 36px;
+      background-image: 
+        linear-gradient(to right, rgba(255, 255, 255, 0.065) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(255, 255, 255, 0.065) 1px, transparent 1px);
     }
   </style>
 </head>
-<body class="bg-slate-950 text-slate-100 min-h-screen font-sans flex flex-col selection:bg-indigo-500 selection:text-white">
+<body class="bg-black text-neutral-100 min-h-screen font-sans flex flex-col selection:bg-indigo-500 selection:text-white relative">
+
+  <!-- Smooth Background Grid Boxes (Visible Tech Grid) -->
+  <div class="fixed inset-0 pointer-events-none z-0 bg-grid-boxes"></div>
+
+  <!-- Ambient Focal Light (Soft subtle glow in background for depth) -->
+  <div class="fixed top-0 left-1/2 -translate-x-1/2 w-[900px] h-[450px] bg-indigo-500/[0.04] blur-[120px] pointer-events-none z-0"></div>
 
   <!-- Top App Navigation Bar -->
-  <header class="border-b border-slate-850 bg-slate-900/80 backdrop-blur sticky top-0 z-30">
+  <header class="border-b border-neutral-850 bg-black/90 backdrop-blur sticky top-0 z-30">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4">
       <!-- Title & Branding with Official Event Logo -->
       <div class="flex items-center gap-3">
@@ -67,113 +121,142 @@
             src="Nomor_Lomba__1_-removebg-preview.png" 
             alt="Logo Lomba Eja Kata 2026" 
             class="h-10 sm:h-12 w-auto object-contain drop-shadow-md"
-            onerror="this.onerror=null; this.parentElement.innerHTML='<div class=\'w-10 h-10 rounded-xl bg-gradient-to-br from-blue-600 via-indigo-600 to-amber-500 flex items-center justify-center shadow-lg text-white font-black text-xs\'>EJA</div>';"
+            onerror="this.onerror=null; this.parentElement.innerHTML='<div class=\'w-10 h-10 rounded bg-neutral-900 border border-neutral-800 flex items-center justify-center shadow-lg text-white font-bold text-xs\'>EJA</div>';"
           />
         </div>
         <div>
           <div class="flex items-center gap-2">
             <h1 class="font-bold text-sm sm:text-base text-white tracking-tight leading-tight">Time Tracker Lomba Eja Kata</h1>
-            <span class="hidden sm:inline-block px-2 py-0.5 rounded text-[10px] font-semibold bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">Data Dukung</span>
+            <span class="hidden sm:inline-block px-2 py-0.5 rounded text-[10px] font-semibold bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">Data dukung</span>
           </div>
-          <p class="text-xs text-slate-400 hidden sm:block">Balai Bahasa Riau • Pencatatan Waktu & Data Dukung Seri</p>
+          <p class="text-xs text-neutral-400 hidden sm:block">Balai Bahasa Riau | Pencatatan waktu & data dukung seri</p>
         </div>
       </div>
 
-      <!-- Action Buttons -->
+      <!-- Action Buttons with clean SVG icons -->
       <div class="flex items-center gap-2 sm:gap-2.5">
         <!-- Button: Comparator -->
         <button 
           onclick="openComparatorModal()" 
-          class="px-3 py-2 rounded-xl text-xs font-semibold bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 border border-emerald-500/30 transition flex items-center gap-1.5 shadow-sm"
+          class="px-3 py-2 rounded-md text-xs font-semibold bg-emerald-950/40 hover:bg-emerald-900/40 text-emerald-400 border border-emerald-500/30 transition flex items-center gap-1.5 shadow-sm"
           title="Bandingkan catatan waktu peserta per babak"
         >
-          <span>⚖️</span>
-          <span class="hidden md:inline">Komparator Waktu</span>
+          <svg class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3"/></svg>
+          <span class="hidden md:inline">Komparator waktu</span>
         </button>
 
         <!-- Button: Qualification Selection -->
         <button 
           onclick="openQualificationModal()" 
-          class="px-3 py-2 rounded-xl text-xs font-semibold bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 border border-indigo-500/30 transition flex items-center gap-1.5 shadow-sm"
+          class="px-3 py-2 rounded-md text-xs font-semibold bg-indigo-950/40 hover:bg-indigo-900/40 text-indigo-400 border border-indigo-500/30 transition flex items-center gap-1.5 shadow-sm"
           title="Pilih manual peserta yang lolos ke Semifinal dan Final"
         >
-          <span>🎯</span>
-          <span class="hidden md:inline">Seleksi Lolos Babak</span>
+          <svg class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+          <span class="hidden md:inline">Seleksi lolos babak</span>
         </button>
 
         <!-- Button: Setup Config -->
         <button 
           onclick="openConfigModal()" 
-          class="px-3 py-2 rounded-xl text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition flex items-center gap-1.5"
+          class="px-3 py-2 rounded-md text-xs font-semibold bg-neutral-900 hover:bg-neutral-800 text-neutral-200 border border-neutral-800 transition flex items-center gap-1.5"
           title="Ubah batas waktu & kuota kata per babak"
         >
-          <span>⚙️</span>
-          <span class="hidden sm:inline">Setup Babak</span>
+          <svg class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+          <span class="hidden sm:inline">Setup babak</span>
         </button>
 
-        <!-- Button: Export CSV -->
-        <button 
-          onclick="exportToCSV()" 
-          class="px-3 py-2 rounded-xl text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition flex items-center gap-1.5"
-          title="Unduh seluruh rekap ke file CSV"
-        >
-          <span>📥</span>
-          <span class="hidden sm:inline">Ekspor CSV</span>
-        </button>
+        <!-- Button & Dropdown: Export Data (Excel & CSV) -->
+        <div class="relative" id="export-dropdown-wrapper">
+          <button 
+            id="btn-export-toggle"
+            onclick="toggleExportMenu()" 
+            class="px-3 py-2 rounded-md text-xs font-semibold bg-emerald-950/40 hover:bg-emerald-900/40 text-emerald-400 border border-emerald-500/30 transition flex items-center gap-1.5 shadow-sm"
+            title="Unduh rekap waktu ke Excel atau CSV"
+          >
+            <svg class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+            <span class="hidden sm:inline">Ekspor data</span>
+            <span class="text-[9px] text-emerald-500">▼</span>
+          </button>
+
+          <!-- Export Options Dropdown Menu -->
+          <div id="export-dropdown-menu" class="hidden absolute right-0 mt-2 w-64 bg-black border border-neutral-800 rounded-md shadow-2xl p-1.5 z-50 flex flex-col gap-1">
+            <button 
+              onclick="exportToExcel(); toggleExportMenu(false);"
+              class="w-full text-left px-3 py-2 rounded text-xs text-neutral-200 hover:bg-neutral-900 hover:text-white transition flex flex-col gap-0.5"
+            >
+              <span class="font-semibold text-emerald-400 flex items-center gap-1.5">
+                <svg class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                Ekspor Excel (.xlsx)
+              </span>
+              <span class="text-[10px] text-neutral-400">Multi-sheet terpisah per babak (rekomendasi)</span>
+            </button>
+            <div class="h-px bg-neutral-850 my-0.5"></div>
+            <button 
+              onclick="exportToCSV(); toggleExportMenu(false);"
+              class="w-full text-left px-3 py-2 rounded text-xs text-neutral-200 hover:bg-neutral-900 hover:text-white transition flex flex-col gap-0.5"
+            >
+              <span class="font-semibold text-neutral-300 flex items-center gap-1.5">
+                <svg class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                Ekspor CSV (.csv)
+              </span>
+              <span class="text-[10px] text-neutral-400">Tabel terstruktur per babak horizontal</span>
+            </button>
+          </div>
+        </div>
 
         <!-- Button: Manage Participants -->
         <button 
           onclick="openParticipantsModal()" 
-          class="px-3 py-2 rounded-xl text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition flex items-center gap-1.5"
+          class="px-3 py-2 rounded-md text-xs font-semibold bg-neutral-900 hover:bg-neutral-800 text-neutral-200 border border-neutral-800 transition flex items-center gap-1.5"
           title="Kelola & reset daftar 40 peserta"
         >
-          <span>👥</span>
-          <span class="hidden lg:inline">Daftar Peserta</span>
+          <svg class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
+          <span class="hidden lg:inline">Daftar peserta</span>
         </button>
       </div>
     </div>
   </header>
 
   <!-- Main Content Layout -->
-  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 flex-1 w-full flex flex-col gap-5">
+  <main class="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 flex-1 w-full flex flex-col gap-5">
     
     <!-- Round Switcher Banner -->
-    <div class="bg-slate-900 border border-slate-800 rounded-2xl p-2 sm:p-2.5 flex items-center justify-between gap-3 shadow-md">
+    <div class="bg-[#070707]/90 backdrop-blur-sm border border-neutral-850 rounded-md p-2 sm:p-2.5 flex items-center justify-between gap-3 shadow-md">
       <div class="flex items-center gap-2 overflow-x-auto py-0.5">
-        <span class="text-xs text-slate-400 font-semibold px-2 hidden sm:inline">PILIH BABAK:</span>
+        <span class="text-xs text-neutral-400 font-medium px-2 hidden sm:inline">Pilih babak:</span>
         <button 
           id="btn-round-penyisihan" 
           onclick="switchRound('penyisihan')"
-          class="px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 bg-indigo-600 text-white shadow-md shadow-indigo-600/30"
+          class="px-4 py-2 rounded-md text-xs font-semibold transition flex items-center gap-2 bg-indigo-600 text-white shadow-md shadow-indigo-600/30"
         >
           <span>Penyisihan</span>
-          <span class="text-[10px] px-1.5 py-0.5 rounded-full bg-indigo-950/60 text-indigo-200 font-mono" id="badge-round-penyisihan">3 Kata</span>
+          <span class="text-[10px] px-1.5 py-0.5 rounded bg-indigo-950/80 text-indigo-200 font-mono" id="badge-round-penyisihan">3 Kata</span>
         </button>
 
         <button 
           id="btn-round-semifinal" 
           onclick="switchRound('semifinal')"
-          class="px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 bg-slate-800 text-slate-400 hover:text-white"
+          class="px-4 py-2 rounded-md text-xs font-semibold transition flex items-center gap-2 bg-neutral-900 text-neutral-400 hover:text-white"
         >
           <span>Semifinal</span>
-          <span class="text-[10px] px-1.5 py-0.5 rounded-full bg-slate-900 text-slate-400 font-mono" id="badge-round-semifinal">3 Kata</span>
+          <span class="text-[10px] px-1.5 py-0.5 rounded bg-black text-neutral-400 font-mono" id="badge-round-semifinal">3 Kata</span>
         </button>
 
         <button 
           id="btn-round-final" 
           onclick="switchRound('final')"
-          class="px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 bg-slate-800 text-slate-400 hover:text-white"
+          class="px-4 py-2 rounded-md text-xs font-semibold transition flex items-center gap-2 bg-neutral-900 text-neutral-400 hover:text-white"
         >
           <span>Final</span>
-          <span class="text-[10px] px-1.5 py-0.5 rounded-full bg-slate-900 text-slate-400 font-mono" id="badge-round-final">5 Kata</span>
+          <span class="text-[10px] px-1.5 py-0.5 rounded bg-black text-neutral-400 font-mono" id="badge-round-final">5 Kata</span>
         </button>
       </div>
 
       <!-- Quick info indicator -->
-      <div class="hidden md:flex items-center gap-3 text-xs text-slate-400 pr-2 font-mono">
-        <div>Batas Maksimal: <span class="text-amber-400 font-bold font-mono" id="current-limit-indicator">10.0 detik</span></div>
-        <div class="text-slate-600">|</div>
-        <div>Total Kuota: <span class="text-emerald-400 font-bold font-mono" id="current-words-indicator">3 Kata</span></div>
+      <div class="hidden md:flex items-center gap-3 text-xs text-neutral-400 pr-2 font-mono">
+        <div>Batas maksimal: <span class="text-amber-400 font-semibold font-mono" id="current-limit-indicator">10.0 detik</span></div>
+        <div class="text-neutral-700">|</div>
+        <div>Total kuota: <span class="text-emerald-400 font-semibold font-mono" id="current-words-indicator">3 Kata</span></div>
       </div>
     </div>
 
@@ -184,65 +267,64 @@
       <div class="lg:col-span-7 flex flex-col justify-between gap-4 h-full min-h-0">
         
         <!-- Active Participant Display Bar (Tanpa Dropdown) -->
-        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-3 shrink-0">
+        <div class="bg-[#070707]/90 backdrop-blur-sm border border-neutral-850 rounded-md p-4 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-3 shrink-0">
           <div class="flex items-center gap-3 w-full sm:w-auto">
             <button 
               onclick="navigateParticipant(-1)" 
-              class="w-10 h-10 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 transition text-base flex items-center justify-center font-bold shrink-0"
-              title="Peserta Sebelumnya (Shortcut: Tombol Panah Kiri)"
+              class="w-10 h-10 rounded-md bg-neutral-900 hover:bg-neutral-800 text-neutral-200 transition text-base flex items-center justify-center font-bold shrink-0 border border-neutral-800"
+              title="Peserta sebelumnya (Shortcut: Tombol Panah Kiri)"
             >
               ◀
             </button>
             <div class="flex-1 sm:flex-initial min-w-0">
-              <label class="text-[10px] font-semibold text-slate-400 uppercase tracking-wider block mb-0.5">Peserta Sedang Tampil</label>
+              <label class="text-[10px] font-medium text-neutral-400 block mb-0.5">Peserta sedang tampil</label>
               <div class="flex items-center gap-2">
-                <span id="active-p-badge" class="px-2 py-0.5 rounded-lg bg-indigo-600/20 border border-indigo-500/30 text-indigo-300 font-mono font-bold text-xs shrink-0">#1</span>
-                <span id="active-p-name" class="font-bold text-sm sm:text-base text-white truncate max-w-[180px] sm:max-w-[240px]">Jihan</span>
+                <span id="active-p-badge" class="px-2 py-0.5 rounded bg-indigo-950/80 border border-indigo-500/30 text-indigo-300 font-mono font-semibold text-xs shrink-0">#1</span>
+                <span id="active-p-name" class="font-semibold text-sm sm:text-base text-white truncate max-w-[180px] sm:max-w-[240px]">Jihan</span>
               </div>
             </div>
             <button 
               onclick="navigateParticipant(1)" 
-              class="w-10 h-10 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 transition text-base flex items-center justify-center font-bold shrink-0"
-              title="Peserta Selanjutnya (Shortcut: Tombol Panah Kanan)"
+              class="w-10 h-10 rounded-md bg-neutral-900 hover:bg-neutral-800 text-neutral-200 transition text-base flex items-center justify-center font-bold shrink-0 border border-neutral-800"
+              title="Peserta selanjutnya (Shortcut: Tombol Panah Kanan)"
             >
               ▶
             </button>
           </div>
 
-          <!-- Active Average & Count Display (Simetris & Sejajar) -->
-          <div class="flex items-stretch gap-4 w-full sm:w-auto justify-end border-t sm:border-t-0 pt-2.5 sm:pt-0 border-slate-800">
+          <!-- Active Average & Count Display -->
+          <div class="flex items-stretch gap-4 w-full sm:w-auto justify-end border-t sm:border-t-0 pt-2.5 sm:pt-0 border-neutral-850">
             <div class="text-right flex flex-col justify-center min-w-[110px]">
-              <div class="text-[10px] uppercase font-semibold text-slate-400 leading-tight">Rata-Rata Waktu</div>
-              <div class="text-sm sm:text-base font-bold font-mono text-emerald-400 mt-0.5 h-6 flex items-center justify-end" id="active-avg-display">0.00 detik</div>
+              <div class="text-[10px] font-medium text-neutral-400 leading-tight">Rata-rata waktu</div>
+              <div class="text-sm sm:text-base font-semibold font-mono text-emerald-400 mt-0.5 h-6 flex items-center justify-end" id="active-avg-display">0.00 detik</div>
             </div>
-            <div class="w-px bg-slate-800 self-stretch my-0.5"></div>
+            <div class="w-px bg-neutral-800 self-stretch my-0.5"></div>
             <div class="text-right flex flex-col justify-center min-w-[75px]">
-              <div class="text-[10px] uppercase font-semibold text-slate-400 leading-tight">Status Kata</div>
-              <div class="text-sm sm:text-base font-bold font-mono text-slate-200 mt-0.5 h-6 flex items-center justify-end" id="active-progress-display">0/3</div>
+              <div class="text-[10px] font-medium text-neutral-400 leading-tight">Status kata</div>
+              <div class="text-sm sm:text-base font-semibold font-mono text-neutral-200 mt-0.5 h-6 flex items-center justify-end" id="active-progress-display">0/3</div>
             </div>
           </div>
         </div>
 
         <!-- Main Live Stopwatch Arena -->
-        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl flex flex-col items-center justify-center text-center relative overflow-hidden flex-1 min-h-0">
+        <div class="bg-[#070707]/90 backdrop-blur-sm border border-neutral-850 rounded-md p-5 shadow-xl flex flex-col items-center justify-center text-center relative overflow-hidden flex-1 min-h-0">
           
           <!-- Background Glow Effect -->
-          <div id="glow-backdrop" class="absolute -top-24 -left-24 w-64 h-64 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none transition-all duration-500"></div>
+          <div id="glow-backdrop" class="absolute -top-24 -left-24 w-64 h-64 bg-indigo-500/10 rounded-md blur-3xl pointer-events-none transition-all duration-500"></div>
 
           <!-- Limit Badge Pill (Info Statis Batas Waktu) -->
-          <div id="limit-status-pill" class="mb-2 px-3.5 py-1 rounded-full text-xs font-semibold uppercase tracking-wider bg-slate-800 text-slate-300 border border-slate-700 flex items-center gap-1.5">
-            <span class="w-2 h-2 rounded-full bg-slate-400" id="limit-pulse-dot"></span>
-            <span id="limit-pill-text">Batas Maksimal: <span id="pill-limit-val">10.0</span> detik</span>
+          <div id="limit-status-pill" class="mb-2 px-3 py-1 rounded text-xs font-medium bg-neutral-900 text-neutral-300 border border-neutral-800 flex items-center gap-1.5">
+            <span id="limit-pill-text">Batas maksimal: <span id="pill-limit-val">10.0</span> detik</span>
           </div>
 
-          <!-- Giant Digital Stopwatch Display (Diperbesar) -->
-          <div id="timer-display" class="font-mono text-6xl sm:text-7xl lg:text-8xl font-black tracking-tight text-white py-1 sm:py-2 timer-glow-normal select-none">
+          <!-- Giant Digital Stopwatch Display -->
+          <div id="timer-display" class="font-mono text-6xl sm:text-7xl lg:text-8xl font-bold tracking-tight text-white py-1 sm:py-2 timer-glow-normal select-none">
             00:00.00
           </div>
 
-          <!-- Balanced Status & Overtime Row (Always visible to maintain layout symmetry) -->
-          <div id="overtime-diff" class="text-xs sm:text-sm font-medium text-slate-400 h-6 mt-1 flex items-center justify-center transition-all duration-200">
-            Siap merekam • Menghitung maju dari 00:00
+          <!-- Balanced Status & Overtime Row -->
+          <div id="overtime-diff" class="text-xs sm:text-sm font-medium text-neutral-400 h-6 mt-1 flex items-center justify-center transition-all duration-200">
+            Siap merekam - Menghitung maju dari 00:00
           </div>
 
           <!-- Stopwatch Action Controls -->
@@ -251,17 +333,17 @@
             <button 
               id="btn-toggle" 
               onclick="toggleTimer()" 
-              class="flex-1 py-3.5 px-6 rounded-2xl font-black text-sm tracking-wide uppercase transition-all duration-150 transform active:scale-95 shadow-lg bg-emerald-600 hover:bg-emerald-500 text-white shadow-emerald-600/30 flex items-center justify-center gap-2"
+              class="flex-1 py-3 px-6 rounded-md font-bold text-sm transition-all duration-150 transform active:scale-95 shadow-lg bg-emerald-600 hover:bg-emerald-500 text-white shadow-emerald-600/30 flex items-center justify-center gap-2"
             >
               <span id="btn-toggle-icon">▶</span>
-              <span id="btn-toggle-text">Mulai (Start)</span>
+              <span id="btn-toggle-text">Mulai</span>
             </button>
 
             <!-- Reset / Retake Word Button -->
             <button 
               id="btn-reset" 
               onclick="resetActiveWordTime()" 
-              class="py-3.5 px-5 rounded-2xl font-bold text-xs sm:text-sm transition-all duration-150 bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 flex items-center justify-center gap-1.5"
+              class="py-3 px-5 rounded-md font-semibold text-xs sm:text-sm transition-all duration-150 bg-neutral-900 hover:bg-neutral-800 text-neutral-300 border border-neutral-800 flex items-center justify-center gap-1.5"
               title="Ulangi pencatatan untuk kata ini (Shortcut: R)"
             >
               <span>↺</span>
@@ -269,16 +351,18 @@
             </button>
           </div>
 
-          <div class="text-[11px] text-slate-500 mt-2.5 hidden sm:block">
-            Tekan <kbd class="px-1.5 py-0.5 rounded bg-slate-800 text-slate-300 font-mono text-[10px] border border-slate-700">Spasi</kbd> untuk Start/Stop • <kbd class="px-1.5 py-0.5 rounded bg-slate-800 text-slate-300 font-mono text-[10px] border border-slate-700">R</kbd> untuk Ulangi Kata
+          <div class="text-xs text-neutral-400 mt-3 flex items-center justify-center gap-2 flex-wrap select-none">
+            <span>Tekan <kbd class="px-1.5 py-0.5 rounded bg-neutral-900 text-neutral-200 font-mono text-[11px] border border-neutral-700 shadow-sm font-semibold">Spasi</kbd> untuk start/stop</span>
+            <span class="text-neutral-700">|</span>
+            <span><kbd class="px-1.5 py-0.5 rounded bg-neutral-900 text-neutral-200 font-mono text-[11px] border border-neutral-700 shadow-sm font-semibold">R</kbd> untuk ulangi kata</span>
           </div>
         </div>
 
         <!-- Word Slots Indicator Container -->
-        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-sm flex flex-col gap-2 shrink-0">
-          <div class="flex items-center justify-between text-xs text-slate-400 font-semibold px-1">
-            <span>SLOT KATA BABAK INI</span>
-            <span class="text-[11px] text-slate-500 font-normal">Klik slot untuk merekam ulang kata tertentu</span>
+        <div class="bg-[#070707]/90 backdrop-blur-sm border border-neutral-850 rounded-md p-4 shadow-sm flex flex-col gap-2 shrink-0">
+          <div class="flex items-center justify-between text-xs text-neutral-400 font-medium px-1">
+            <span>Slot kata babak ini</span>
+            <span class="text-[11px] text-neutral-500 font-normal">Klik slot untuk merekam ulang kata tertentu</span>
           </div>
           <div id="word-slots-container" class="grid grid-cols-3 sm:grid-cols-5 gap-2.5">
             <!-- Rendered by JS -->
@@ -288,17 +372,18 @@
       </div>
 
       <!-- RIGHT COLUMN: Search & Rekap Data Dukung Durasi (5 Cols) -->
-      <div class="lg:col-span-5 flex flex-col bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-sm h-[560px] lg:h-full min-h-0 overflow-hidden">
+      <div class="lg:col-span-5 flex flex-col bg-[#070707]/90 backdrop-blur-sm border border-neutral-850 rounded-md p-4 shadow-sm h-[560px] lg:h-full min-h-0 overflow-hidden">
         
         <!-- Header -->
-        <div class="flex items-center justify-between pb-3 border-b border-slate-800 shrink-0">
+        <div class="flex items-center justify-between pb-3 border-b border-neutral-850 shrink-0">
           <div>
-            <h2 class="font-bold text-sm text-white flex items-center gap-1.5">
-              <span>📋</span> Data Dukung Durasi
+            <h2 class="font-semibold text-sm text-white flex items-center gap-1.5">
+              <svg class="w-4 h-4 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/></svg>
+              <span>Data dukung durasi</span>
             </h2>
-            <p class="text-[11px] text-slate-400">Ringkasan waktu per kata & rata-rata</p>
+            <p class="text-[11px] text-neutral-400">Ringkasan waktu per kata & rata-rata</p>
           </div>
-          <span class="text-[11px] font-bold px-2 py-0.5 rounded-full bg-slate-800 text-slate-300 border border-slate-700" id="summary-round-label">
+          <span class="text-[11px] font-semibold px-2 py-0.5 rounded bg-neutral-900 text-neutral-300 border border-neutral-800" id="summary-round-label">
             Babak Penyisihan
           </span>
         </div>
@@ -306,22 +391,24 @@
         <!-- Clean Instant Search Bar -->
         <div class="py-3 shrink-0">
           <div class="relative">
-            <span class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-500 text-sm">🔍</span>
+            <span class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-neutral-500">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+            </span>
             <input 
               type="text" 
               id="search-input" 
               oninput="renderSummaryList()" 
-              placeholder="Cari nama atau nomor urut..." 
-              class="w-full bg-slate-950 border border-slate-800 rounded-xl pl-9 pr-3 py-2 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-indigo-500 transition"
+              placeholder="Cari nama atau nomor urut" 
+              class="w-full bg-[#070707] border border-neutral-800 rounded-md pl-9 pr-3 py-2 text-xs text-neutral-200 placeholder-neutral-500 focus:outline-none focus:border-indigo-500 transition"
             >
           </div>
-          <div class="flex items-center justify-between text-xs px-1 mt-2 text-slate-400">
-            <span class="text-[11px] text-slate-400 font-medium">Daftar peserta aktif babak ini</span>
-            <span class="text-slate-500 font-mono text-[11px]"><span id="summary-count">40</span> peserta</span>
+          <div class="flex items-center justify-between text-xs px-1 mt-2 text-neutral-400">
+            <span class="text-[11px] text-neutral-400 font-medium">Daftar peserta aktif babak ini</span>
+            <span class="text-neutral-500 font-mono text-[11px]"><span id="summary-count">40</span> peserta</span>
           </div>
         </div>
 
-        <!-- Participant Cards List (Fluid vertical scroll filling container without breaking layout) -->
+        <!-- Participant Cards List -->
         <div id="summary-list" class="flex-1 min-h-0 overflow-y-auto pr-1 space-y-2">
           <!-- Populated by JS -->
         </div>
@@ -334,103 +421,108 @@
   <!-- ==================== MODALS ==================== -->
 
   <!-- MODAL 1: SETUP BABAK & KUOTA KATA -->
-  <div id="modal-config" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm hidden flex items-center justify-center p-4">
-    <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl">
-      <div class="flex items-center justify-between pb-4 border-b border-slate-800">
-        <h3 class="font-bold text-base text-white flex items-center gap-2">
-          <span>⚙️</span> Setup Batas Waktu & Kuota Kata
+  <div id="modal-config" class="fixed inset-0 z-50 bg-black/85 backdrop-blur-sm hidden flex items-center justify-center p-4">
+    <div class="bg-black border border-neutral-800 rounded-md max-w-md w-full p-6 shadow-2xl">
+      <div class="flex items-center justify-between pb-4 border-b border-neutral-850">
+        <h3 class="font-semibold text-base text-white flex items-center gap-2">
+          <svg class="w-4 h-4 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+          <span>Setup batas waktu & kuota kata</span>
         </h3>
-        <button onclick="closeConfigModal()" class="text-slate-400 hover:text-white text-lg">✕</button>
+        <button onclick="closeConfigModal()" class="text-neutral-400 hover:text-white text-lg">✕</button>
       </div>
 
       <div class="py-4 space-y-4">
-        <p class="text-xs text-slate-400 leading-relaxed">
+        <p class="text-xs text-neutral-400 leading-relaxed">
           Atur batas maksimal durasi (detik) dan total kata per peserta. Peringatan visual warna merah akan aktif saat stopwatch melampaui limit ini.
         </p>
 
         <!-- Penyisihan -->
-        <div class="bg-slate-950 p-3.5 rounded-xl border border-slate-800 space-y-2">
-          <div class="font-bold text-xs text-indigo-400">Babak Penyisihan</div>
+        <div class="bg-[#070707] p-3.5 rounded-md border border-neutral-850 space-y-2">
+          <div class="font-semibold text-xs text-indigo-400">Babak penyisihan</div>
           <div class="grid grid-cols-2 gap-3">
             <div>
-              <label class="text-[10px] text-slate-400 font-medium block mb-1">Limit Waktu (Detik)</label>
-              <input type="number" id="cfg-limit-penyisihan" min="1" max="120" step="1" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs font-mono text-white focus:outline-none focus:border-indigo-500">
+              <label class="text-[10px] text-neutral-400 font-medium block mb-1">Limit waktu (detik)</label>
+              <input type="number" id="cfg-limit-penyisihan" min="1" max="120" step="1" class="w-full bg-black border border-neutral-800 rounded px-2.5 py-1.5 text-xs font-mono text-white focus:outline-none focus:border-indigo-500">
             </div>
             <div>
-              <label class="text-[10px] text-slate-400 font-medium block mb-1">Total Kata</label>
-              <input type="number" id="cfg-words-penyisihan" min="1" max="10" step="1" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs font-mono text-white focus:outline-none focus:border-indigo-500">
+              <label class="text-[10px] text-neutral-400 font-medium block mb-1">Total kata</label>
+              <input type="number" id="cfg-words-penyisihan" min="1" max="10" step="1" class="w-full bg-black border border-neutral-800 rounded px-2.5 py-1.5 text-xs font-mono text-white focus:outline-none focus:border-indigo-500">
             </div>
           </div>
         </div>
 
         <!-- Semifinal -->
-        <div class="bg-slate-950 p-3.5 rounded-xl border border-slate-800 space-y-2">
-          <div class="font-bold text-xs text-indigo-400">Babak Semifinal</div>
+        <div class="bg-[#070707] p-3.5 rounded-md border border-neutral-850 space-y-2">
+          <div class="font-semibold text-xs text-indigo-400">Babak semifinal</div>
           <div class="grid grid-cols-2 gap-3">
             <div>
-              <label class="text-[10px] text-slate-400 font-medium block mb-1">Limit Waktu (Detik)</label>
-              <input type="number" id="cfg-limit-semifinal" min="1" max="120" step="1" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs font-mono text-white focus:outline-none focus:border-indigo-500">
+              <label class="text-[10px] text-neutral-400 font-medium block mb-1">Limit waktu (detik)</label>
+              <input type="number" id="cfg-limit-semifinal" min="1" max="120" step="1" class="w-full bg-black border border-neutral-800 rounded px-2.5 py-1.5 text-xs font-mono text-white focus:outline-none focus:border-indigo-500">
             </div>
             <div>
-              <label class="text-[10px] text-slate-400 font-medium block mb-1">Total Kata</label>
-              <input type="number" id="cfg-words-semifinal" min="1" max="10" step="1" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs font-mono text-white focus:outline-none focus:border-indigo-500">
+              <label class="text-[10px] text-neutral-400 font-medium block mb-1">Total kata</label>
+              <input type="number" id="cfg-words-semifinal" min="1" max="10" step="1" class="w-full bg-black border border-neutral-800 rounded px-2.5 py-1.5 text-xs font-mono text-white focus:outline-none focus:border-indigo-500">
             </div>
           </div>
         </div>
 
         <!-- Final -->
-        <div class="bg-slate-950 p-3.5 rounded-xl border border-slate-800 space-y-2">
-          <div class="font-bold text-xs text-indigo-400">Babak Final</div>
+        <div class="bg-[#070707] p-3.5 rounded-md border border-neutral-850 space-y-2">
+          <div class="font-semibold text-xs text-indigo-400">Babak final</div>
           <div class="grid grid-cols-2 gap-3">
             <div>
-              <label class="text-[10px] text-slate-400 font-medium block mb-1">Limit Waktu (Detik)</label>
-              <input type="number" id="cfg-limit-final" min="1" max="120" step="1" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs font-mono text-white focus:outline-none focus:border-indigo-500">
+              <label class="text-[10px] text-neutral-400 font-medium block mb-1">Limit waktu (detik)</label>
+              <input type="number" id="cfg-limit-final" min="1" max="120" step="1" class="w-full bg-black border border-neutral-800 rounded px-2.5 py-1.5 text-xs font-mono text-white focus:outline-none focus:border-indigo-500">
             </div>
             <div>
-              <label class="text-[10px] text-slate-400 font-medium block mb-1">Total Kata</label>
-              <input type="number" id="cfg-words-final" min="1" max="10" step="1" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs font-mono text-white focus:outline-none focus:border-indigo-500">
+              <label class="text-[10px] text-neutral-400 font-medium block mb-1">Total kata</label>
+              <input type="number" id="cfg-words-final" min="1" max="10" step="1" class="w-full bg-black border border-neutral-800 rounded px-2.5 py-1.5 text-xs font-mono text-white focus:outline-none focus:border-indigo-500">
             </div>
           </div>
         </div>
       </div>
 
-      <div class="flex items-center justify-end gap-2 pt-3 border-t border-slate-800">
-        <button onclick="closeConfigModal()" class="px-4 py-2 rounded-xl text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-300">Batal</button>
-        <button onclick="saveConfiguration()" class="px-4 py-2 rounded-xl text-xs font-bold bg-indigo-600 hover:bg-indigo-500 text-white shadow-md shadow-indigo-600/30">Simpan Pengaturan</button>
+      <div class="flex items-center justify-end gap-2 pt-3 border-t border-neutral-850">
+        <button onclick="closeConfigModal()" class="px-4 py-2 rounded-md text-xs font-medium bg-neutral-900 hover:bg-neutral-800 text-neutral-300 border border-neutral-800">Batal</button>
+        <button onclick="saveConfiguration()" class="px-4 py-2 rounded-md text-xs font-semibold bg-indigo-600 hover:bg-indigo-500 text-white shadow-md shadow-indigo-600/30">Simpan pengaturan</button>
       </div>
     </div>
   </div>
 
   <!-- MODAL 2: SELEKSI LOLOS BABAK (SEMIFINAL & FINAL BERJENJANG) -->
-  <div id="modal-qualification" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm hidden flex items-center justify-center p-4">
-    <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-2xl w-full p-6 shadow-2xl flex flex-col max-h-[90vh]">
-      <div class="flex items-center justify-between pb-3 border-b border-slate-800 shrink-0">
+  <div id="modal-qualification" class="fixed inset-0 z-50 bg-black/85 backdrop-blur-sm hidden flex items-center justify-center p-4">
+    <div class="bg-black border border-neutral-800 rounded-md max-w-2xl w-full p-6 shadow-2xl flex flex-col max-h-[90vh]">
+      <div class="flex items-center justify-between pb-3 border-b border-neutral-850 shrink-0">
         <div>
-          <h3 class="font-bold text-base text-white flex items-center gap-2">
-            <span>🎯</span> Seleksi Peserta Lolos Babak
+          <h3 class="font-semibold text-base text-white flex items-center gap-2">
+            <svg class="w-4 h-4 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            <span>Seleksi peserta lolos babak</span>
           </h3>
-          <p class="text-xs text-slate-400 mt-0.5">Centang peserta yang diputuskan berhak melanjutkan ke babak berikutnya</p>
+          <p class="text-xs text-neutral-400 mt-0.5">Centang peserta yang diputuskan berhak melanjutkan ke babak berikutnya</p>
         </div>
-        <button onclick="closeQualificationModal()" class="text-slate-400 hover:text-white text-lg">✕</button>
+        <button onclick="closeQualificationModal()" class="text-neutral-400 hover:text-white text-lg">✕</button>
       </div>
 
       <!-- Tab Switcher inside Modal -->
       <div class="flex items-center gap-2 pt-3 pb-2 shrink-0">
-        <button id="btn-tab-qual-semi" onclick="switchQualTab('semifinal')" class="px-3.5 py-1.5 rounded-xl text-xs font-bold bg-indigo-600 text-white transition">
-          Lolos Semifinal (<span id="qual-semi-count">0</span>)
+        <button id="btn-tab-qual-semi" onclick="switchQualTab('semifinal')" class="px-3.5 py-1.5 rounded-md text-xs font-semibold bg-indigo-600 text-white transition">
+          Lolos semifinal (<span id="qual-semi-count">0</span>)
         </button>
-        <button id="btn-tab-qual-final" onclick="switchQualTab('final')" class="px-3.5 py-1.5 rounded-xl text-xs font-bold bg-slate-800 text-slate-400 hover:text-white transition">
-          Lolos Final (<span id="qual-final-count">0</span>)
+        <button id="btn-tab-qual-final" onclick="switchQualTab('final')" class="px-3.5 py-1.5 rounded-md text-xs font-semibold bg-neutral-900 text-neutral-400 hover:text-white transition">
+          Lolos final (<span id="qual-final-count">0</span>)
         </button>
         <div class="flex-1"></div>
-        <button onclick="selectAllQualCurrentTab(true)" class="text-[11px] text-indigo-400 hover:underline px-1">Pilih Semua</button>
+        <button onclick="selectAllQualCurrentTab(true)" class="text-[11px] text-indigo-400 hover:underline px-1">Pilih semua</button>
         <button onclick="selectAllQualCurrentTab(false)" class="text-[11px] text-rose-400 hover:underline px-1">Reset</button>
       </div>
 
       <!-- Notice Container for Hierarchical Qualification -->
-      <div id="qual-final-notice" class="hidden mb-2 p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-xs text-amber-300 flex flex-col sm:flex-row sm:items-center justify-between gap-2 shrink-0">
-        <span>ℹ️ Hanya peserta yang telah dinyatakan <strong>lolos Semifinal</strong> yang dapat dipilih untuk Babak Final.</span>
-        <span class="font-mono font-bold text-[11px] px-2 py-0.5 rounded bg-amber-500/20 border border-amber-500/30 whitespace-nowrap shrink-0" id="qual-final-pool-count">0 Semifinalis</span>
+      <div id="qual-final-notice" class="hidden mb-2 p-2.5 rounded-md bg-amber-500/10 border border-amber-500/20 text-xs text-amber-300 flex flex-col sm:flex-row sm:items-center justify-between gap-2 shrink-0">
+        <span class="flex items-center gap-1.5">
+          <svg class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+          <span>Hanya peserta yang telah dinyatakan <strong>lolos Semifinal</strong> yang dapat dipilih untuk Babak Final</span>
+        </span>
+        <span class="font-mono font-semibold text-[11px] px-2 py-0.5 rounded bg-amber-500/20 border border-amber-500/30 whitespace-nowrap shrink-0" id="qual-final-pool-count">0 semifinalis</span>
       </div>
 
       <!-- Search inside selection -->
@@ -439,8 +531,8 @@
           type="text" 
           id="qual-search" 
           oninput="renderQualificationList()" 
-          placeholder="Cari peserta seleksi..." 
-          class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-1.5 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+          placeholder="Cari peserta seleksi" 
+          class="w-full bg-[#070707] border border-neutral-800 rounded-md px-3 py-1.5 text-xs text-neutral-200 placeholder-neutral-500 focus:outline-none focus:border-indigo-500"
         >
       </div>
 
@@ -450,39 +542,40 @@
       </div>
 
       <!-- Footer -->
-      <div class="flex items-center justify-between pt-4 border-t border-slate-800 shrink-0">
-        <span class="text-xs text-slate-400" id="qual-status-summary">Terpilih: 0 peserta</span>
-        <button onclick="closeQualificationModal()" class="px-5 py-2 rounded-xl text-xs font-bold bg-indigo-600 hover:bg-indigo-500 text-white shadow-md shadow-indigo-600/30">
-          Selesai & Terapkan
+      <div class="flex items-center justify-between pt-4 border-t border-neutral-850 shrink-0">
+        <span class="text-xs text-neutral-400" id="qual-status-summary">Terpilih: 0 peserta</span>
+        <button onclick="closeQualificationModal()" class="px-5 py-2 rounded-md text-xs font-semibold bg-indigo-600 hover:bg-indigo-500 text-white shadow-md shadow-indigo-600/30">
+          Selesai & terapkan
         </button>
       </div>
     </div>
   </div>
 
   <!-- MODAL 3: KOMPARATOR WAKTU (MULTI-PESERTA HEAD-TO-HEAD) -->
-  <div id="modal-comparator" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm hidden flex items-center justify-center p-3 sm:p-4">
-    <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-4xl w-full p-4 sm:p-6 shadow-2xl flex flex-col max-h-[92vh]">
+  <div id="modal-comparator" class="fixed inset-0 z-50 bg-black/85 backdrop-blur-sm hidden flex items-center justify-center p-3 sm:p-4">
+    <div class="bg-black border border-neutral-800 rounded-md max-w-4xl w-full p-4 sm:p-6 shadow-2xl flex flex-col max-h-[92vh]">
       
       <!-- Modal Header -->
-      <div class="flex items-center justify-between pb-3 border-b border-slate-800 shrink-0">
+      <div class="flex items-center justify-between pb-3 border-b border-neutral-850 shrink-0">
         <div>
-          <h3 class="font-bold text-base text-white flex items-center gap-2">
-            <span>⚖️</span> Komparator Waktu Antar Peserta
+          <h3 class="font-semibold text-base text-white flex items-center gap-2">
+            <svg class="w-4 h-4 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3"/></svg>
+            <span>Komparator waktu antar peserta</span>
           </h3>
-          <p class="text-xs text-slate-400 mt-0.5">Bandingkan durasi per kata dan rata-rata sebagai data dukung penentuan seri</p>
+          <p class="text-xs text-neutral-400 mt-0.5">Bandingkan durasi per kata dan rata-rata sebagai data dukung penentuan seri</p>
         </div>
-        <button onclick="closeComparatorModal()" class="text-slate-400 hover:text-white text-lg">✕</button>
+        <button onclick="closeComparatorModal()" class="text-neutral-400 hover:text-white text-lg">✕</button>
       </div>
 
       <!-- Controls: Round Selector & Multi-Select Checklist Popover -->
-      <div class="py-3 flex flex-wrap items-center justify-between gap-3 border-b border-slate-800 shrink-0">
+      <div class="py-3 flex flex-wrap items-center justify-between gap-3 border-b border-neutral-850 shrink-0">
         
         <!-- Round Switcher inside Comparator -->
-        <div class="flex items-center gap-1.5 bg-slate-950 p-1 rounded-xl border border-slate-800">
-          <span class="text-[11px] font-semibold text-slate-400 px-2">Babak:</span>
-          <button id="btn-comp-penyisihan" onclick="switchComparatorRound('penyisihan')" class="px-2.5 py-1 rounded-lg text-xs font-bold bg-indigo-600 text-white">Penyisihan</button>
-          <button id="btn-comp-semifinal" onclick="switchComparatorRound('semifinal')" class="px-2.5 py-1 rounded-lg text-xs font-bold text-slate-400 hover:text-white">Semifinal</button>
-          <button id="btn-comp-final" onclick="switchComparatorRound('final')" class="px-2.5 py-1 rounded-lg text-xs font-bold text-slate-400 hover:text-white">Final</button>
+        <div class="flex items-center gap-1.5 bg-[#070707] p-1 rounded-md border border-neutral-800">
+          <span class="text-[11px] font-medium text-neutral-400 px-2">Babak:</span>
+          <button id="btn-comp-penyisihan" onclick="switchComparatorRound('penyisihan')" class="px-2.5 py-1 rounded text-xs font-semibold bg-indigo-600 text-white">Penyisihan</button>
+          <button id="btn-comp-semifinal" onclick="switchComparatorRound('semifinal')" class="px-2.5 py-1 rounded text-xs font-semibold text-neutral-400 hover:text-white">Semifinal</button>
+          <button id="btn-comp-final" onclick="switchComparatorRound('final')" class="px-2.5 py-1 rounded text-xs font-semibold text-neutral-400 hover:text-white">Final</button>
         </div>
 
         <!-- Add Participant Checklist Dropdown Toggle -->
@@ -490,24 +583,24 @@
           <button 
             id="btn-toggle-comp-popover" 
             onclick="toggleCompPopover()" 
-            class="px-3.5 py-1.5 rounded-xl text-xs font-bold bg-emerald-600 hover:bg-emerald-500 text-white flex items-center gap-2 shadow-sm"
+            class="px-3.5 py-1.5 rounded-md text-xs font-semibold bg-emerald-600 hover:bg-emerald-500 text-white flex items-center gap-2 shadow-sm"
           >
-            <span>+ Pilih Peserta Dibandingkan</span>
-            <span class="text-[10px] px-1.5 py-0.2 rounded-full bg-emerald-900 text-emerald-200" id="comp-selected-count-badge">0</span>
+            <span>+ Pilih peserta dibandingkan</span>
+            <span class="text-[10px] px-1.5 py-0.2 rounded bg-emerald-900 text-emerald-200" id="comp-selected-count-badge">0</span>
           </button>
 
           <!-- Dropdown Popover Menu -->
-          <div id="comp-participants-popover" class="hidden absolute right-0 mt-2 w-72 bg-slate-950 border border-slate-800 rounded-2xl shadow-2xl p-3 z-50 flex flex-col">
-            <div class="flex items-center justify-between pb-2 border-b border-slate-800 mb-2">
-              <span class="text-xs font-bold text-white">Centang Peserta</span>
-              <button onclick="toggleCompPopover(false)" class="text-slate-400 hover:text-white text-xs">✕ Tutup</button>
+          <div id="comp-participants-popover" class="hidden absolute right-0 mt-2 w-72 bg-black border border-neutral-800 rounded-md shadow-2xl p-3 z-50 flex flex-col">
+            <div class="flex items-center justify-between pb-2 border-b border-neutral-850 mb-2">
+              <span class="text-xs font-semibold text-white">Centang peserta</span>
+              <button onclick="toggleCompPopover(false)" class="text-neutral-400 hover:text-white text-xs">✕ Tutup</button>
             </div>
             <input 
               type="text" 
               id="comp-popover-search" 
               oninput="renderCompPopoverList()" 
-              placeholder="Cari peserta..." 
-              class="w-full bg-slate-900 border border-slate-800 rounded-lg px-2.5 py-1 text-xs text-slate-200 placeholder-slate-500 focus:outline-none mb-2"
+              placeholder="Cari peserta" 
+              class="w-full bg-[#070707] border border-neutral-800 rounded px-2.5 py-1 text-xs text-neutral-200 placeholder-neutral-500 focus:outline-none mb-2"
             >
             <div id="comp-popover-list" class="max-h-56 overflow-y-auto space-y-1 pr-1">
               <!-- Populated by JS -->
@@ -523,18 +616,18 @@
       </div>
 
       <!-- Descriptive Analysis Box (Data Dukung Seri) -->
-      <div id="comparator-analysis-box" class="mb-2 p-3.5 rounded-xl bg-slate-950 border border-slate-800 text-xs shrink-0">
+      <div id="comparator-analysis-box" class="mb-2 p-3.5 rounded-md bg-[#070707] border border-neutral-850 text-xs shrink-0">
         <!-- Populated by JS -->
       </div>
 
       <!-- Modal Footer -->
-      <div class="pt-3 border-t border-slate-800 flex items-center justify-between shrink-0 text-xs text-slate-400">
+      <div class="pt-3 border-t border-neutral-850 flex items-center justify-between shrink-0 text-xs text-neutral-400">
         <div>
-          <span>Batas Waktu Babak: <strong class="text-amber-400 font-mono" id="comp-limit-text">10.0 detik</strong></span>
-          <span class="mx-2">•</span>
-          <span>Peserta Tercepat ditandai <strong class="text-emerald-400">hijau</strong></span>
+          <span>Batas waktu babak: <strong class="text-amber-400 font-mono" id="comp-limit-text">10.0 detik</strong></span>
+          <span class="mx-2">|</span>
+          <span>Peserta tercepat ditandai <strong class="text-emerald-400">hijau</strong></span>
         </div>
-        <button onclick="closeComparatorModal()" class="px-4 py-1.5 rounded-xl text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-200">
+        <button onclick="closeComparatorModal()" class="px-4 py-1.5 rounded-md text-xs font-medium bg-neutral-900 hover:bg-neutral-800 text-neutral-200 border border-neutral-800">
           Tutup
         </button>
       </div>
@@ -543,43 +636,44 @@
   </div>
 
   <!-- MODAL 4: MANAGE & RESET 40 PARTICIPANTS -->
-  <div id="modal-participants" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm hidden flex items-center justify-center p-4">
-    <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-lg w-full p-6 shadow-2xl flex flex-col max-h-[90vh]">
-      <div class="flex items-center justify-between pb-3 border-b border-slate-800 shrink-0">
-        <h3 class="font-bold text-base text-white flex items-center gap-2">
-          <span>👥</span> Kelola Peserta Lomba
+  <div id="modal-participants" class="fixed inset-0 z-50 bg-black/85 backdrop-blur-sm hidden flex items-center justify-center p-4">
+    <div class="bg-black border border-neutral-800 rounded-md max-w-lg w-full p-6 shadow-2xl flex flex-col max-h-[90vh]">
+      <div class="flex items-center justify-between pb-3 border-b border-neutral-850 shrink-0">
+        <h3 class="font-semibold text-base text-white flex items-center gap-2">
+          <svg class="w-4 h-4 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
+          <span>Kelola peserta lomba</span>
         </h3>
-        <button onclick="closeParticipantsModal()" class="text-slate-400 hover:text-white text-lg">✕</button>
+        <button onclick="closeParticipantsModal()" class="text-neutral-400 hover:text-white text-lg">✕</button>
       </div>
 
       <div class="py-3 flex-1 overflow-y-auto space-y-3">
-        <p class="text-xs text-slate-400 leading-relaxed">
-          Sistem secara otomatis telah memuat 40 peserta resmi. Kamu dapat mereset data waktu semua peserta atau melakukan impor ulang sesuai kebutuhan format <code>Nomor, Nama</code> per baris.
+        <p class="text-xs text-neutral-400 leading-relaxed">
+          Sistem secara otomatis telah memuat 40 peserta resmi. Anda dapat mereset data waktu semua peserta atau melakukan impor ulang sesuai format <code>Nomor, Nama</code> per baris.
         </p>
 
         <div>
-          <label class="text-[11px] font-semibold text-slate-400 block mb-1">Daftar Teks (Format: Nomor, Nama):</label>
-          <textarea id="bulk-participants-input" rows="8" class="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-xs font-mono text-slate-200 focus:outline-none focus:border-indigo-500"></textarea>
+          <label class="text-[11px] font-medium text-neutral-400 block mb-1">Daftar teks (format: Nomor, Nama):</label>
+          <textarea id="bulk-participants-input" rows="8" class="w-full bg-[#070707] border border-neutral-800 rounded-md p-3 text-xs font-mono text-neutral-200 focus:outline-none focus:border-indigo-500"></textarea>
         </div>
 
         <div class="flex items-center gap-2">
-          <button onclick="applyBulkParticipants()" class="px-4 py-2 rounded-xl text-xs font-bold bg-indigo-600 hover:bg-indigo-500 text-white">
-            Terapkan Teks Peserta
+          <button onclick="applyBulkParticipants()" class="px-4 py-2 rounded-md text-xs font-semibold bg-indigo-600 hover:bg-indigo-500 text-white">
+            Terapkan teks peserta
           </button>
-          <button onclick="restoreDefault40()" class="px-4 py-2 rounded-xl text-xs font-bold bg-slate-800 hover:bg-slate-700 text-amber-400 border border-slate-700">
-            Kembalikan 40 Peserta Asli
+          <button onclick="restoreDefault40()" class="px-4 py-2 rounded-md text-xs font-semibold bg-neutral-900 hover:bg-neutral-800 text-amber-400 border border-neutral-800">
+            Kembalikan 40 peserta asli
           </button>
         </div>
 
-        <div class="pt-2 border-t border-slate-800">
-          <button onclick="clearAllRecordedTimes()" class="w-full py-2.5 rounded-xl text-xs font-bold bg-rose-600/20 hover:bg-rose-600/30 text-rose-300 border border-rose-500/30">
-            ⚠️ Reset Semua Catatan Waktu (Mulai Baru)
+        <div class="pt-2 border-t border-neutral-850">
+          <button onclick="clearAllRecordedTimes()" class="w-full py-2.5 rounded-md text-xs font-semibold bg-rose-950/40 hover:bg-rose-900/50 text-rose-300 border border-rose-500/30">
+            Reset semua catatan waktu (mulai baru)
           </button>
         </div>
       </div>
 
-      <div class="pt-3 border-t border-slate-800 flex justify-end shrink-0">
-        <button onclick="closeParticipantsModal()" class="px-4 py-2 rounded-xl text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-300">Tutup</button>
+      <div class="pt-3 border-t border-neutral-850 flex justify-end shrink-0">
+        <button onclick="closeParticipantsModal()" class="px-4 py-2 rounded-md text-xs font-medium bg-neutral-900 hover:bg-neutral-800 text-neutral-300 border border-neutral-800">Tutup</button>
       </div>
     </div>
   </div>
@@ -658,9 +752,9 @@
      * Active Application State
      */
     let participants = [];
-    let currentRound = 'penyisihan'; // 'penyisihan' | 'semifinal' | 'final'
+    let currentRound = 'penyisihan';
     let activeParticipantNo = 1;
-    let activeWordIndex = 0; // 0-based word slot
+    let activeWordIndex = 0;
 
     // Stopwatch runtime state
     let timerRunning = false;
@@ -669,9 +763,9 @@
     let timerInterval = null;
 
     // Modals state
-    let qualActiveTab = 'semifinal'; // 'semifinal' | 'final'
+    let qualActiveTab = 'semifinal';
     let comparatorRound = 'penyisihan';
-    let comparatorSelectedNos = []; // Empty by default as requested!
+    let comparatorSelectedNos = [];
 
     /**
      * Initialize Application on Window Load
@@ -716,7 +810,6 @@
         if (saved) {
           participants = JSON.parse(saved);
         } else {
-          // Initialize default 40
           participants = DEFAULT_40_PARTICIPANTS.map(p => ({
             no: p.no,
             name: p.name,
@@ -734,7 +827,6 @@
         console.error("Gagal memuat peserta:", e);
       }
 
-      // Ensure activeParticipantNo exists
       if (!participants.some(p => p.no === activeParticipantNo) && participants.length > 0) {
         activeParticipantNo = participants[0].no;
       }
@@ -777,17 +869,15 @@
       activeWordIndex = 0;
       timerElapsedMs = 0;
 
-      // Update button styles
       ['penyisihan', 'semifinal', 'final'].forEach(r => {
         const btn = document.getElementById(`btn-round-${r}`);
         if (r === currentRound) {
-          btn.className = "px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 bg-indigo-600 text-white shadow-md shadow-indigo-600/30";
+          btn.className = "px-4 py-2 rounded-md text-xs font-semibold transition flex items-center gap-2 bg-indigo-600 text-white shadow-md shadow-indigo-600/30";
         } else {
-          btn.className = "px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 bg-slate-800 text-slate-400 hover:text-white";
+          btn.className = "px-4 py-2 rounded-md text-xs font-semibold transition flex items-center gap-2 bg-neutral-900 text-neutral-400 hover:text-white";
         }
       });
 
-      // Check if current participant belongs to this round
       const validParticipants = getRoundParticipants(currentRound);
       if (validParticipants.length > 0 && !validParticipants.some(p => p.no === activeParticipantNo)) {
         activeParticipantNo = validParticipants[0].no;
@@ -850,7 +940,6 @@
       const currentWordsCount = appConfig.wordsCount[currentRound];
       const roundTimes = (p.times && p.times[currentRound]) ? p.times[currentRound] : [];
 
-      // Update Active Participant Display Bar
       const badgeEl = document.getElementById('active-p-badge');
       const nameEl = document.getElementById('active-p-name');
       if (badgeEl && nameEl) {
@@ -863,12 +952,10 @@
         }
       }
 
-      // Clamp word index
       if (activeWordIndex >= currentWordsCount) {
         activeWordIndex = currentWordsCount - 1;
       }
 
-      // If active word already has recorded time, load it on timer display
       if (!timerRunning) {
         if (roundTimes[activeWordIndex] !== undefined && roundTimes[activeWordIndex] !== null) {
           timerElapsedMs = roundTimes[activeWordIndex];
@@ -878,14 +965,12 @@
         updateTimerDisplay(timerElapsedMs);
       }
 
-      // Progress and average
       const completedWords = roundTimes.filter(t => t !== null && t !== undefined).length;
       document.getElementById('active-progress-display').textContent = `${completedWords}/${currentWordsCount}`;
 
       const avg = calculateAverage(roundTimes);
       document.getElementById('active-avg-display').textContent = avg !== null ? `${avg.toFixed(2)} detik` : '0.00 detik';
 
-      // Render Word Slots Bar
       const slotsContainer = document.getElementById('word-slots-container');
       slotsContainer.innerHTML = '';
 
@@ -899,24 +984,24 @@
         const slotBtn = document.createElement('button');
         slotBtn.onclick = () => selectWordSlot(i);
 
-        let borderClass = isSelected ? 'border-indigo-500 ring-2 ring-indigo-500/30' : 'border-slate-800 hover:border-slate-700';
-        let bgClass = isSelected ? 'bg-indigo-950/40' : 'bg-slate-950';
+        let borderClass = isSelected ? 'border-indigo-500 ring-1 ring-indigo-500/30' : 'border-neutral-850 hover:border-neutral-750';
+        let bgClass = isSelected ? 'bg-indigo-950/40' : 'bg-[#070707]';
 
         let badgeHtml = '';
         if (hasValue) {
           const sec = (timeVal / 1000).toFixed(2);
           if (isOverLimit) {
-            badgeHtml = `<span class="text-rose-400 font-mono font-bold text-xs">${sec} detik ⚠️</span>`;
+            badgeHtml = `<span class="text-rose-400 font-mono font-semibold text-xs">${sec} detik</span>`;
           } else {
-            badgeHtml = `<span class="text-emerald-400 font-mono font-bold text-xs">${sec} detik</span>`;
+            badgeHtml = `<span class="text-emerald-400 font-mono font-semibold text-xs">${sec} detik</span>`;
           }
         } else {
-          badgeHtml = `<span class="text-slate-600 font-mono text-xs">--.--</span>`;
+          badgeHtml = `<span class="text-neutral-600 font-mono text-xs">-</span>`;
         }
 
-        slotBtn.className = `p-2.5 rounded-xl border ${borderClass} ${bgClass} transition flex flex-col items-center justify-center text-center`;
+        slotBtn.className = `p-2.5 rounded-md border ${borderClass} ${bgClass} transition flex flex-col items-center justify-center text-center`;
         slotBtn.innerHTML = `
-          <span class="text-[10px] font-semibold ${isSelected ? 'text-indigo-300' : 'text-slate-400'} uppercase">Kata ${i + 1}</span>
+          <span class="text-[10px] font-medium ${isSelected ? 'text-indigo-300' : 'text-neutral-400'}">Kata ${i + 1}</span>
           ${badgeHtml}
         `;
         slotsContainer.appendChild(slotBtn);
@@ -944,18 +1029,14 @@
       timerRunning = true;
       timerStartTime = Date.now() - timerElapsedMs;
 
-      // Update UI button state
       const btn = document.getElementById('btn-toggle');
       if (btn) {
-        btn.className = "flex-1 py-4 px-6 rounded-2xl font-black text-sm sm:text-base tracking-wide uppercase transition-all duration-150 transform active:scale-95 shadow-lg bg-rose-600 hover:bg-rose-500 text-white shadow-rose-600/30 flex items-center justify-center gap-2";
+        btn.className = "flex-1 py-3 px-6 rounded-md font-bold text-sm transition-all duration-150 transform active:scale-95 shadow-lg bg-rose-600 hover:bg-rose-500 text-white shadow-rose-600/30 flex items-center justify-center gap-2";
       }
       const icon = document.getElementById('btn-toggle-icon');
-      if (icon) icon.textContent = "⏹";
+      if (icon) icon.textContent = "■";
       const text = document.getElementById('btn-toggle-text');
-      if (text) text.textContent = "Stop & Simpan";
-
-      const dot = document.getElementById('limit-pulse-dot');
-      if (dot) dot.className = "w-2 h-2 rounded-full bg-emerald-400 animate-ping";
+      if (text) text.textContent = "Stop & simpan";
 
       timerInterval = setInterval(() => {
         timerElapsedMs = Date.now() - timerStartTime;
@@ -968,18 +1049,14 @@
       clearInterval(timerInterval);
       timerRunning = false;
 
-      // Reset button UI
       const btn = document.getElementById('btn-toggle');
       if (btn) {
-        btn.className = "flex-1 py-4 px-6 rounded-2xl font-black text-sm sm:text-base tracking-wide uppercase transition-all duration-150 transform active:scale-95 shadow-lg bg-emerald-600 hover:bg-emerald-500 text-white shadow-emerald-600/30 flex items-center justify-center gap-2";
+        btn.className = "flex-1 py-3 px-6 rounded-md font-bold text-sm transition-all duration-150 transform active:scale-95 shadow-lg bg-emerald-600 hover:bg-emerald-500 text-white shadow-emerald-600/30 flex items-center justify-center gap-2";
       }
       const icon = document.getElementById('btn-toggle-icon');
       if (icon) icon.textContent = "▶";
       const text = document.getElementById('btn-toggle-text');
-      if (text) text.textContent = "Mulai (Start)";
-
-      const dot = document.getElementById('limit-pulse-dot');
-      if (dot) dot.className = "w-2 h-2 rounded-full bg-slate-400";
+      if (text) text.textContent = "Mulai";
 
       if (saveResult) {
         saveRecordedTime(timerElapsedMs);
@@ -997,7 +1074,6 @@
       saveParticipantsToStorage();
 
       const currentWordsCount = appConfig.wordsCount[currentRound];
-      // Automatically advance to the next word slot if available
       if (activeWordIndex < currentWordsCount - 1) {
         activeWordIndex++;
         timerElapsedMs = 0;
@@ -1023,7 +1099,7 @@
     }
 
     /**
-     * Digital Counter Display & Always-Balanced Symmetrical Feedback
+     * Digital Counter Display
      */
     function updateTimerDisplay(ms) {
       const timerEl = document.getElementById('timer-display');
@@ -1045,25 +1121,20 @@
       if (pillValEl) pillValEl.textContent = currentLimit.toFixed(1);
 
       const pill = document.getElementById('limit-status-pill');
-      const dot = document.getElementById('limit-pulse-dot');
       const pillText = document.getElementById('limit-pill-text');
       const overtimeDiff = document.getElementById('overtime-diff');
       const glowBackdrop = document.getElementById('glow-backdrop');
 
-      // Visual Overtime / In-Time Check
       if (totalSeconds > currentLimit) {
         const overBy = (totalSeconds - currentLimit).toFixed(2);
         timerEl.classList.remove('text-white', 'timer-glow-normal');
         timerEl.classList.add('text-rose-500', 'timer-glow-warning');
 
         if (pill) {
-          pill.className = "mb-2 px-3.5 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-rose-500/20 text-rose-300 border border-rose-500/50 flex items-center gap-1.5 animate-pulse";
-        }
-        if (dot) {
-          dot.className = "w-2 h-2 rounded-full bg-rose-400 animate-ping";
+          pill.className = "mb-2 px-3 py-1 rounded text-xs font-semibold bg-rose-500/20 text-rose-300 border border-rose-500/50 flex items-center gap-1.5 animate-pulse";
         }
         if (pillText) {
-          pillText.innerHTML = `⚠️ JEBOL BATAS MAKSIMAL (> ${currentLimit.toFixed(1)} detik)`;
+          pillText.innerHTML = `Jebol batas maksimal (> ${currentLimit.toFixed(1)} detik)`;
         }
 
         if (overtimeDiff) {
@@ -1072,7 +1143,7 @@
         }
 
         if (glowBackdrop) {
-          glowBackdrop.className = "absolute -top-24 -left-24 w-72 h-72 bg-rose-500/20 rounded-full blur-3xl pointer-events-none transition-all duration-500";
+          glowBackdrop.className = "absolute -top-24 -left-24 w-72 h-72 bg-rose-500/20 rounded-md blur-3xl pointer-events-none transition-all duration-500";
         }
       } else {
         timerEl.classList.remove('text-rose-500', 'timer-glow-warning');
@@ -1080,28 +1151,25 @@
 
         const remaining = (currentLimit - totalSeconds).toFixed(1);
         if (pill) {
-          pill.className = "mb-2 px-3.5 py-1 rounded-full text-xs font-semibold uppercase tracking-wider bg-slate-800 text-slate-300 border border-slate-700 flex items-center gap-1.5";
-        }
-        if (dot) {
-          dot.className = `w-2 h-2 rounded-full ${timerRunning ? 'bg-emerald-400 animate-ping' : 'bg-slate-400'}`;
+          pill.className = "mb-2 px-3 py-1 rounded text-xs font-medium bg-neutral-900 text-neutral-300 border border-neutral-800 flex items-center gap-1.5";
         }
         if (pillText) {
-          pillText.innerHTML = `Batas Maksimal: <span id="pill-limit-val">${currentLimit.toFixed(1)}</span> detik`;
+          pillText.innerHTML = `Batas maksimal: <span id="pill-limit-val">${currentLimit.toFixed(1)}</span> detik`;
         }
 
         if (overtimeDiff) {
-          overtimeDiff.className = "text-xs sm:text-sm font-medium text-slate-400 h-6 mt-1 flex items-center justify-center transition-all duration-200";
+          overtimeDiff.className = "text-xs sm:text-sm font-medium text-neutral-400 h-6 mt-1 flex items-center justify-center transition-all duration-200";
           if (ms === 0) {
-            overtimeDiff.textContent = "Siap merekam • Menghitung maju dari 00:00";
+            overtimeDiff.textContent = "Siap merekam - Menghitung maju dari 00:00";
           } else if (timerRunning) {
-            overtimeDiff.innerHTML = `Waktu aman • <span class="font-mono text-emerald-400 font-semibold mx-1">${remaining} detik</span> tersisa`;
+            overtimeDiff.innerHTML = `Waktu aman - <span class="font-mono text-emerald-400 font-semibold mx-1">${remaining} detik</span> tersisa`;
           } else {
-            overtimeDiff.innerHTML = `Durasi tersimpan • Batas aman (${currentLimit.toFixed(1)} detik)`;
+            overtimeDiff.innerHTML = `Durasi tersimpan - Batas aman (${currentLimit.toFixed(1)} detik)`;
           }
         }
 
         if (glowBackdrop) {
-          glowBackdrop.className = `absolute -top-24 -left-24 w-64 h-64 ${timerRunning ? 'bg-emerald-500/10' : 'bg-indigo-500/10'} rounded-full blur-3xl pointer-events-none transition-all duration-500`;
+          glowBackdrop.className = `absolute -top-24 -left-24 w-64 h-64 ${timerRunning ? 'bg-emerald-500/10' : 'bg-indigo-500/10'} rounded-md blur-3xl pointer-events-none transition-all duration-500`;
         }
       }
     }
@@ -1125,18 +1193,15 @@
         roundLabelEl.textContent = `Babak ${currentRound.charAt(0).toUpperCase() + currentRound.slice(1)}`;
       }
 
-      // Automatically filter participants based strictly on current round qualification
       const filtered = participants.filter(p => {
         if (currentRound === 'semifinal' && !p.qualifiedSemifinal) return false;
         if (currentRound === 'final' && !p.qualifiedFinal) return false;
 
-        const matchQuery = (
+        return (
           p.name.toLowerCase().includes(query) ||
           String(p.no).includes(query) ||
           `#${p.no}`.includes(query)
         );
-
-        return matchQuery;
       });
 
       if (countEl) {
@@ -1146,11 +1211,11 @@
       if (filtered.length === 0) {
         let emptyMessage = "Tidak ada data peserta yang cocok.";
         if (currentRound !== 'penyisihan') {
-          emptyMessage = `Belum ada peserta yang ditandai lolos ke babak ${currentRound}. Buka tombol 'Seleksi Lolos Babak' di atas untuk memilih peserta.`;
+          emptyMessage = `Belum ada peserta yang ditandai lolos ke babak ${currentRound}. Buka tombol 'Seleksi lolos babak' di atas untuk memilih peserta.`;
         }
         listContainer.innerHTML = `
-          <div class="h-48 flex flex-col items-center justify-center text-slate-500 text-xs text-center px-4">
-            <span class="text-3xl mb-2">🔍</span>
+          <div class="h-48 flex flex-col items-center justify-center text-neutral-500 text-xs text-center px-4">
+            <svg class="w-8 h-8 mb-2 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
             <p>${emptyMessage}</p>
           </div>
         `;
@@ -1165,7 +1230,6 @@
         const avg = calculateAverage(times);
         const isActive = (p.no === activeP.no);
 
-        // Detect if any recorded word in this round breached the maximum limit
         let hasOverLimit = false;
         let overLimitCount = 0;
         for (let i = 0; i < maxWords; i++) {
@@ -1182,9 +1246,10 @@
           }
         };
 
-        const activeBorder = isActive ? 'border-indigo-500 bg-indigo-950/25 ring-1 ring-indigo-500/40' : 'border-slate-800/80 bg-slate-950 hover:border-slate-700';
+        const activeBorder = isActive 
+          ? 'border-indigo-500 bg-indigo-950/25 ring-1 ring-indigo-500/40' 
+          : 'border-neutral-850 bg-[#070707] hover:border-neutral-750';
 
-        // Words pills row with GREEN for safe and RED for over limit
         let wordsHtml = '';
         for (let w = 0; w < maxWords; w++) {
           const t = times[w];
@@ -1193,36 +1258,36 @@
             const isWordOver = (t / 1000 > limit);
             if (isWordOver) {
               const diff = ((t / 1000) - limit).toFixed(1);
-              wordsHtml += `<span class="px-1.5 py-0.5 rounded bg-rose-500/20 text-rose-300 font-mono text-[10px] font-semibold border border-rose-500/30" title="Jebol limit +${diff} detik">K${w+1}: ${sec} detik ⚠️</span>`;
+              wordsHtml += `<span class="px-1.5 py-0.5 rounded bg-rose-500/15 text-rose-300 font-mono text-[10px] font-semibold border border-rose-500/30" title="Jebol limit +${diff} detik">K${w+1}: ${sec} detik</span>`;
             } else {
               wordsHtml += `<span class="px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-400 font-mono text-[10px] font-semibold border border-emerald-500/30" title="Aman dalam batas limit">K${w+1}: ${sec} detik</span>`;
             }
           } else {
-            wordsHtml += `<span class="px-1.5 py-0.5 rounded bg-slate-900/60 text-slate-600 font-mono text-[10px] border border-slate-800">K${w+1}: -</span>`;
+            wordsHtml += `<span class="px-1.5 py-0.5 rounded bg-black text-neutral-600 font-mono text-[10px] border border-neutral-900">K${w+1}: -</span>`;
           }
         }
 
         let overtimeBadge = '';
         if (hasOverLimit) {
-          overtimeBadge = `<span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-rose-500/20 text-rose-300 border border-rose-500/30">${overLimitCount}x Jebol</span>`;
+          overtimeBadge = `<span class="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-rose-500/20 text-rose-300 border border-rose-500/30">${overLimitCount}x jebol</span>`;
         }
 
-        card.className = `p-3 rounded-xl border ${activeBorder} transition cursor-pointer flex flex-col gap-2`;
+        card.className = `p-3 rounded-md border ${activeBorder} transition cursor-pointer flex flex-col gap-2`;
         card.innerHTML = `
           <div class="flex items-center justify-between gap-2">
             <div class="flex items-center gap-2 min-w-0">
-              <span class="w-6 h-6 rounded-lg bg-slate-800 flex items-center justify-center font-mono font-bold text-xs text-indigo-400 shrink-0">#${p.no}</span>
-              <span class="font-bold text-xs text-white truncate">${p.name}</span>
+              <span class="w-6 h-6 rounded bg-neutral-900 border border-neutral-800 flex items-center justify-center font-mono font-semibold text-xs text-indigo-400 shrink-0">#${p.no}</span>
+              <span class="font-semibold text-xs text-white truncate">${p.name}</span>
             </div>
             <div class="flex items-center gap-2 shrink-0">
               ${overtimeBadge}
               <div class="text-right">
-                <span class="text-[10px] text-slate-400 block leading-none">Rata-Rata</span>
-                <span class="font-mono text-xs font-bold ${avg !== null ? 'text-emerald-400' : 'text-slate-600'}">${avg !== null ? avg.toFixed(2) + ' detik' : '-'}</span>
+                <span class="text-[10px] text-neutral-400 block leading-none">Rata-rata</span>
+                <span class="font-mono text-xs font-semibold ${avg !== null ? 'text-emerald-400' : 'text-neutral-600'}">${avg !== null ? avg.toFixed(2) + ' detik' : '-'}</span>
               </div>
             </div>
           </div>
-          <div class="flex flex-wrap items-center gap-1.5 pt-1 border-t border-slate-900">
+          <div class="flex flex-wrap items-center gap-1.5 pt-1 border-t border-neutral-900">
             ${wordsHtml}
           </div>
         `;
@@ -1250,7 +1315,7 @@
     }
 
     /**
-     * MODAL 1: SETUP BABAK
+     * Setup Configuration Modal
      */
     function openConfigModal() {
       document.getElementById('cfg-limit-penyisihan').value = appConfig.limits.penyisihan;
@@ -1297,7 +1362,7 @@
     }
 
     /**
-     * MODAL 2: SELEKSI LOLOS BABAK (BERJENJANG)
+     * Qualification Modal
      */
     function openQualificationModal() {
       document.getElementById('qual-search').value = '';
@@ -1318,7 +1383,7 @@
 
       document.getElementById('qual-semi-count').textContent = semiCount;
       document.getElementById('qual-final-count').textContent = finalCount;
-      document.getElementById('qual-final-pool-count').textContent = `${semiCount} Semifinalis`;
+      document.getElementById('qual-final-pool-count').textContent = `${semiCount} semifinalis`;
     }
 
     function switchQualTab(tab) {
@@ -1328,12 +1393,12 @@
       const noticeFinal = document.getElementById('qual-final-notice');
 
       if (tab === 'semifinal') {
-        btnSemi.className = "px-3.5 py-1.5 rounded-xl text-xs font-bold bg-indigo-600 text-white transition";
-        btnFinal.className = "px-3.5 py-1.5 rounded-xl text-xs font-bold bg-slate-800 text-slate-400 hover:text-white transition";
+        btnSemi.className = "px-3.5 py-1.5 rounded-md text-xs font-semibold bg-indigo-600 text-white transition";
+        btnFinal.className = "px-3.5 py-1.5 rounded-md text-xs font-semibold bg-neutral-900 text-neutral-400 hover:text-white transition";
         noticeFinal.classList.add('hidden');
       } else {
-        btnFinal.className = "px-3.5 py-1.5 rounded-xl text-xs font-bold bg-indigo-600 text-white transition";
-        btnSemi.className = "px-3.5 py-1.5 rounded-xl text-xs font-bold bg-slate-800 text-slate-400 hover:text-white transition";
+        btnFinal.className = "px-3.5 py-1.5 rounded-md text-xs font-semibold bg-indigo-600 text-white transition";
+        btnSemi.className = "px-3.5 py-1.5 rounded-md text-xs font-semibold bg-neutral-900 text-neutral-400 hover:text-white transition";
         noticeFinal.classList.remove('hidden');
       }
 
@@ -1347,7 +1412,6 @@
 
       updateQualCounts();
 
-      // In Final tab, only participants qualified in Semifinal are shown
       let candidates = participants;
       if (qualActiveTab === 'final') {
         candidates = participants.filter(p => p.qualifiedSemifinal);
@@ -1361,10 +1425,10 @@
       if (filtered.length === 0) {
         let msg = "Tidak ada peserta ditemukan.";
         if (qualActiveTab === 'final' && candidates.length === 0) {
-          msg = "Belum ada peserta yang lolos Semifinal. Buka tab 'Lolos Semifinal' terlebih dahulu.";
+          msg = "Belum ada peserta yang lolos Semifinal. Buka tab 'Lolos semifinal' terlebih dahulu.";
         }
         container.innerHTML = `
-          <div class="h-40 flex items-center justify-center text-slate-500 text-xs text-center px-4">
+          <div class="h-40 flex items-center justify-center text-neutral-500 text-xs text-center px-4">
             ${msg}
           </div>
         `;
@@ -1379,7 +1443,7 @@
         if (isChecked) selectedCount++;
 
         const item = document.createElement('label');
-        item.className = `flex items-center justify-between p-2.5 rounded-xl border ${isChecked ? 'bg-indigo-950/30 border-indigo-500/40' : 'bg-slate-950 border-slate-800'} hover:border-slate-700 cursor-pointer transition`;
+        item.className = `flex items-center justify-between p-2.5 rounded-md border ${isChecked ? 'bg-indigo-950/30 border-indigo-500/40' : 'bg-[#070707] border-neutral-850'} hover:border-neutral-750 cursor-pointer transition`;
         
         item.innerHTML = `
           <div class="flex items-center gap-3">
@@ -1387,12 +1451,12 @@
               type="checkbox" 
               ${isChecked ? 'checked' : ''} 
               onchange="toggleParticipantQual(${p.no}, this.checked)"
-              class="w-4 h-4 rounded text-indigo-600 bg-slate-900 border-slate-700 focus:ring-0 focus:ring-offset-0"
+              class="w-4 h-4 rounded text-indigo-600 bg-neutral-900 border-neutral-700 focus:ring-0 focus:ring-offset-0"
             >
-            <span class="font-mono text-xs text-indigo-400 font-bold">#${p.no}</span>
-            <span class="text-xs font-semibold text-slate-200">${p.name}</span>
+            <span class="font-mono text-xs text-indigo-400 font-semibold">#${p.no}</span>
+            <span class="text-xs font-medium text-neutral-200">${p.name}</span>
           </div>
-          <span class="text-[10px] px-2 py-0.5 rounded font-mono ${isChecked ? 'bg-emerald-500/20 text-emerald-300' : 'text-slate-500'}">
+          <span class="text-[10px] px-2 py-0.5 rounded font-mono ${isChecked ? 'bg-emerald-500/20 text-emerald-300' : 'text-neutral-500'}">
             ${isChecked ? 'Lolos ✓' : 'Belum'}
           </span>
         `;
@@ -1408,7 +1472,6 @@
 
       if (qualActiveTab === 'semifinal') {
         p.qualifiedSemifinal = isChecked;
-        // If unchecking semifinal, revoke final qualification too
         if (!isChecked) {
           p.qualifiedFinal = false;
         }
@@ -1427,7 +1490,6 @@
           if (!status) p.qualifiedFinal = false;
         });
       } else {
-        // Only toggle for those already in Semifinal
         participants.forEach(p => {
           if (p.qualifiedSemifinal) {
             p.qualifiedFinal = status;
@@ -1440,11 +1502,10 @@
     }
 
     /**
-     * MODAL 3: KOMPARATOR WAKTU ANTAR PESERTA
+     * Comparator Modal
      */
     function openComparatorModal() {
       comparatorRound = currentRound;
-      // Empty selection by default as requested!
       comparatorSelectedNos = [];
 
       switchComparatorRound(currentRound);
@@ -1461,13 +1522,12 @@
       ['penyisihan', 'semifinal', 'final'].forEach(r => {
         const btn = document.getElementById(`btn-comp-${r}`);
         if (r === round) {
-          btn.className = "px-2.5 py-1 rounded-lg text-xs font-bold bg-indigo-600 text-white";
+          btn.className = "px-2.5 py-1 rounded text-xs font-semibold bg-indigo-600 text-white";
         } else {
-          btn.className = "px-2.5 py-1 rounded-lg text-xs font-bold text-slate-400 hover:text-white";
+          btn.className = "px-2.5 py-1 rounded text-xs font-semibold text-neutral-400 hover:text-white";
         }
       });
 
-      // Filter out participants that don't belong to the newly selected round
       const validRoundNos = getRoundParticipants(comparatorRound).map(p => p.no);
       comparatorSelectedNos = comparatorSelectedNos.filter(no => validRoundNos.includes(no));
 
@@ -1502,23 +1562,23 @@
       );
 
       if (filtered.length === 0) {
-        listEl.innerHTML = '<div class="text-xs text-slate-500 py-4 text-center">Tidak ada peserta</div>';
+        listEl.innerHTML = '<div class="text-xs text-neutral-500 py-4 text-center">Tidak ada peserta</div>';
         return;
       }
 
       filtered.forEach(p => {
         const isSelected = comparatorSelectedNos.includes(p.no);
         const item = document.createElement('label');
-        item.className = `flex items-center gap-2 px-2 py-1.5 rounded-lg text-xs cursor-pointer ${isSelected ? 'bg-indigo-950/40 text-indigo-300' : 'hover:bg-slate-900 text-slate-300'}`;
+        item.className = `flex items-center gap-2 px-2 py-1.5 rounded text-xs cursor-pointer ${isSelected ? 'bg-indigo-950/40 text-indigo-300' : 'hover:bg-neutral-900 text-neutral-300'}`;
         item.innerHTML = `
           <input 
             type="checkbox" 
             ${isSelected ? 'checked' : ''} 
             onchange="toggleComparatorParticipant(${p.no}, this.checked)"
-            class="rounded text-indigo-600 bg-slate-900 border-slate-700"
+            class="rounded text-indigo-600 bg-neutral-900 border-neutral-700"
           >
-          <span class="font-mono text-slate-400 text-[11px]">#${p.no}</span>
-          <span class="font-semibold truncate">${p.name}</span>
+          <span class="font-mono text-neutral-400 text-[11px]">#${p.no}</span>
+          <span class="font-medium truncate">${p.name}</span>
         `;
         listEl.appendChild(item);
       });
@@ -1554,17 +1614,17 @@
 
       if (comparatorSelectedNos.length === 0) {
         container.innerHTML = `
-          <div class="h-48 flex flex-col items-center justify-center text-center p-6 border-2 border-dashed border-slate-800 rounded-2xl">
-            <span class="text-4xl mb-2">⚖️</span>
-            <div class="font-bold text-sm text-slate-300">Belum Ada Peserta Dipilih</div>
-            <p class="text-xs text-slate-500 mt-1 max-w-sm">
-              Klik tombol hijau <strong>"+ Pilih Peserta Dibandingkan"</strong> di atas untuk mencentang 2 atau lebih peserta yang ingin diperbandingkan catatannya.
+          <div class="h-48 flex flex-col items-center justify-center text-center p-6 border border-neutral-850 rounded-md">
+            <svg class="w-10 h-10 mb-2 opacity-40 text-neutral-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3"/></svg>
+            <div class="font-semibold text-sm text-neutral-300">Belum ada peserta dipilih</div>
+            <p class="text-xs text-neutral-500 mt-1 max-w-sm">
+              Klik tombol hijau <strong>"+ Pilih peserta dibandingkan"</strong> di atas untuk mencentang 2 atau lebih peserta yang ingin diperbandingkan catatannya.
             </p>
           </div>
         `;
         if (analysisBox) {
           analysisBox.innerHTML = `
-            <div class="text-slate-500 text-center py-1">
+            <div class="text-neutral-500 text-center py-1">
               Pilih minimal 2 peserta di atas untuk melihat analisis komparasi data dukung waktu.
             </div>
           `;
@@ -1572,7 +1632,6 @@
         return;
       }
 
-      // Fetch participants and calculate stats
       const selectedList = comparatorSelectedNos.map(no => {
         const p = participants.find(item => item.no === no);
         const times = (p && p.times && p.times[comparatorRound]) ? p.times[comparatorRound] : [];
@@ -1596,17 +1655,15 @@
         };
       });
 
-      // Find leading (fastest average)
       const validItems = selectedList.filter(item => item.avg !== null);
       const validAverages = validItems.map(item => item.avg);
       const minAverage = validAverages.length > 0 ? Math.min(...validAverages) : null;
       const winner = validItems.find(item => item.avg === minAverage);
 
-      // Build Table
       let tableHtml = `
         <table class="w-full text-left text-xs border-collapse">
           <thead>
-            <tr class="border-b border-slate-800 bg-slate-950/60 text-slate-400 font-semibold uppercase text-[10px]">
+            <tr class="border-b border-neutral-850 bg-black text-neutral-400 font-medium text-[11px]">
               <th class="py-2.5 px-3">Peserta</th>
       `;
 
@@ -1615,33 +1672,32 @@
       }
 
       tableHtml += `
-              <th class="py-2.5 px-3 text-center font-mono">Rata-Rata</th>
-              <th class="py-2.5 px-3 text-center font-mono">Total Waktu</th>
+              <th class="py-2.5 px-3 text-center font-mono">Rata-rata</th>
+              <th class="py-2.5 px-3 text-center font-mono">Total waktu</th>
               <th class="py-2.5 px-2 text-center">Aksi</th>
             </tr>
           </thead>
-          <tbody class="divide-y divide-slate-800/80">
+          <tbody class="divide-y divide-neutral-850">
       `;
 
       selectedList.forEach(item => {
         const isLeading = (item.avg !== null && item.avg === minAverage && validAverages.length > 1);
 
         tableHtml += `
-          <tr class="transition ${isLeading ? 'bg-emerald-950/40 border-l-4 border-l-emerald-400 hover:bg-emerald-950/50' : 'hover:bg-slate-950/40'}">
+          <tr class="transition ${isLeading ? 'bg-emerald-950/30 border-l-4 border-l-emerald-400 hover:bg-emerald-950/40' : 'hover:bg-neutral-950/50'}">
             <td class="py-3 px-3">
               <div class="flex items-center gap-2">
-                <span class="w-6 h-6 rounded-lg ${isLeading ? 'bg-emerald-900/60 text-emerald-300' : 'bg-slate-800 text-indigo-400'} font-mono font-bold flex items-center justify-center text-xs">#${item.no}</span>
+                <span class="w-6 h-6 rounded ${isLeading ? 'bg-emerald-900/60 text-emerald-300' : 'bg-neutral-900 text-indigo-400 border border-neutral-800'} font-mono font-semibold flex items-center justify-center text-xs">#${item.no}</span>
                 <div>
-                  <div class="font-bold text-white flex items-center gap-1.5">
+                  <div class="font-semibold text-white flex items-center gap-1.5">
                     <span>${item.name}</span>
-                    ${isLeading ? '<span class="text-[10px] px-1.5 py-0.2 rounded bg-emerald-500/20 text-emerald-300 font-bold border border-emerald-500/30">Tercepat ⭐</span>' : ''}
+                    ${isLeading ? '<span class="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-semibold border border-emerald-500/30">Tercepat</span>' : ''}
                   </div>
                 </div>
               </div>
             </td>
         `;
 
-        // Render each word
         for (let w = 0; w < maxWords; w++) {
           const t = item.times[w];
           if (t !== undefined && t !== null) {
@@ -1651,52 +1707,49 @@
               const diff = ((t / 1000) - limitSec).toFixed(1);
               tableHtml += `
                 <td class="py-3 px-2 text-center">
-                  <div class="font-mono font-bold text-rose-400">${sec} detik</div>
+                  <div class="font-mono font-semibold text-rose-400">${sec} detik</div>
                   <div class="text-[9px] text-rose-500/80 font-mono">+${diff} detik</div>
                 </td>
               `;
             } else {
               tableHtml += `
                 <td class="py-3 px-2 text-center">
-                  <div class="font-mono font-semibold text-emerald-400">${sec} detik</div>
+                  <div class="font-mono font-medium text-emerald-400">${sec} detik</div>
                   <div class="text-[9px] text-emerald-500/80 font-mono">Aman</div>
                 </td>
               `;
             }
           } else {
             tableHtml += `
-              <td class="py-3 px-2 text-center text-slate-600 font-mono">-</td>
+              <td class="py-3 px-2 text-center text-neutral-600 font-mono">-</td>
             `;
           }
         }
 
-        // Average Column
         tableHtml += `
           <td class="py-3 px-3 text-center">
-            <span class="font-mono text-sm font-bold ${item.avg !== null ? (isLeading ? 'text-emerald-400' : 'text-slate-200') : 'text-slate-600'}">
+            <span class="font-mono text-sm font-semibold ${item.avg !== null ? (isLeading ? 'text-emerald-400' : 'text-neutral-200') : 'text-neutral-600'}">
               ${item.avg !== null ? item.avg.toFixed(2) + ' detik' : '-'}
             </span>
           </td>
         `;
 
-        // Total Column
         tableHtml += `
           <td class="py-3 px-3 text-center">
-            <span class="font-mono text-xs text-slate-300">
+            <span class="font-mono text-xs text-neutral-300">
               ${item.total !== null ? item.total.toFixed(2) + ' detik' : '-'}
             </span>
           </td>
         `;
 
-        // In-Row Delete Action Button
         tableHtml += `
           <td class="py-3 px-2 text-center">
             <button 
               onclick="removeComparatorParticipant(${item.no})" 
-              class="p-1.5 rounded-lg bg-slate-800 hover:bg-rose-500/20 text-slate-400 hover:text-rose-400 border border-slate-700 hover:border-rose-500/40 transition"
+              class="p-1.5 rounded bg-neutral-900 hover:bg-rose-500/20 text-neutral-400 hover:text-rose-400 border border-neutral-800 hover:border-rose-500/40 transition inline-flex items-center justify-center"
               title="Hapus baris peserta ini dari perbandingan"
             >
-              🗑️
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
             </button>
           </td>
         </tr>`;
@@ -1709,10 +1762,8 @@
 
       container.innerHTML = tableHtml;
 
-      // Render Descriptive Analysis Narrative Box
       if (analysisBox) {
         if (selectedList.length >= 2 && winner && validItems.length >= 2) {
-          // Sort remaining items by average ascending
           const sorted = [...validItems].sort((a, b) => a.avg - b.avg);
           const leader = sorted[0];
           const runnerUp = sorted[1];
@@ -1723,31 +1774,31 @@
           if (hasOvertimeParticipants.length > 0) {
             overtimeSummary = `
               <div class="mt-1 text-rose-400 flex items-center gap-1.5">
-                <span>⚠️ Catatan Limit:</span>
-                <span>${hasOvertimeParticipants.map(p => `<strong>#${p.no} ${p.name}</strong> (${p.overLimitCount}x jebol limit)`).join(', ')}.</span>
+                <span class="font-medium">Catatan batas limit:</span>
+                <span>${hasOvertimeParticipants.map(p => `<strong>#${p.no} ${p.name}</strong> (${p.overLimitCount}x jebol limit)`).join(', ')}</span>
               </div>
             `;
           } else {
             overtimeSummary = `
               <div class="mt-1 text-emerald-400 flex items-center gap-1.5">
-                <span>✅ Catatan Limit:</span>
-                <span>Seluruh kata yang dieja oleh peserta dalam perbandingan ini berada dalam batas aman (&le; ${limitSec}s).</span>
+                <span class="font-medium">Catatan batas limit:</span>
+                <span>Seluruh kata yang dieja oleh peserta dalam perbandingan ini berada dalam batas aman (&le; ${limitSec} detik)</span>
               </div>
             `;
           }
 
           analysisBox.innerHTML = `
             <div class="flex items-start gap-2.5">
-              <span class="text-xl shrink-0">📊</span>
+              <svg class="w-5 h-5 text-indigo-400 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
               <div class="flex-1 space-y-1">
-                <div class="font-bold text-white text-xs flex items-center gap-2">
-                  <span>Analisis Data Dukung Waktu:</span>
+                <div class="font-semibold text-white text-xs flex items-center gap-2">
+                  <span>Analisis data dukung waktu:</span>
                   <span class="px-2 py-0.2 rounded bg-emerald-500/20 text-emerald-300 font-mono text-[11px] border border-emerald-500/30">
-                    #${leader.no} ${leader.name} Tercepat (${leader.avg.toFixed(2)} detik)
+                    #${leader.no} ${leader.name} tercepat (${leader.avg.toFixed(2)} detik)
                   </span>
                 </div>
-                <p class="text-slate-300 leading-relaxed text-[11px]">
-                  Berdasarkan perbandingan waktu babak <strong>${comparatorRound.toUpperCase()}</strong>, peserta <strong>#${leader.no} ${leader.name}</strong> unggul lebih cepat <strong>${diff} detik</strong> per kata dibandingkan peserta <strong>#${runnerUp.no} ${runnerUp.name}</strong> (rata-rata ${runnerUp.avg.toFixed(2)} detik).
+                <p class="text-neutral-300 leading-relaxed text-[11px]">
+                  Berdasarkan perbandingan waktu babak <strong>${comparatorRound}</strong>, peserta <strong>#${leader.no} ${leader.name}</strong> unggul lebih cepat <strong>${diff} detik</strong> per kata dibandingkan peserta <strong>#${runnerUp.no} ${runnerUp.name}</strong> (rata-rata ${runnerUp.avg.toFixed(2)} detik).
                 </p>
                 ${overtimeSummary}
               </div>
@@ -1755,13 +1806,13 @@
           `;
         } else if (validItems.length < 2) {
           analysisBox.innerHTML = `
-            <div class="text-slate-400 text-center py-1">
-              ℹ️ Beberapa peserta terpilih belum memiliki catatan waktu lengkap pada babak ini. Rekam durasi terlebih dahulu untuk melihat analisis keunggulan.
+            <div class="text-neutral-400 text-center py-1">
+              Beberapa peserta terpilih belum memiliki catatan waktu lengkap pada babak ini. Rekam durasi terlebih dahulu untuk melihat analisis keunggulan.
             </div>
           `;
         } else {
           analysisBox.innerHTML = `
-            <div class="text-slate-400 text-center py-1">
+            <div class="text-neutral-400 text-center py-1">
               Tambahkan minimal 2 peserta untuk menghasilkan kalkulasi selisih waktu otomatis.
             </div>
           `;
@@ -1770,7 +1821,7 @@
     }
 
     /**
-     * MODAL 4: MANAGE & RESTORE PARTICIPANTS
+     * Manage Participants Modal
      */
     function openParticipantsModal() {
       const textarea = document.getElementById('bulk-participants-input');
@@ -1803,7 +1854,6 @@
 
       if (newList.length === 0) return;
 
-      // Preserve existing recorded times if participant number matches
       participants = newList.map(item => {
         const existing = participants.find(old => old.no === item.no);
         return {
@@ -1835,7 +1885,7 @@
       });
 
       saveParticipantsToStorage();
-      openParticipantsModal(); // Refresh textarea
+      openParticipantsModal();
       renderActiveParticipant();
       renderSummaryList();
     }
@@ -1853,36 +1903,296 @@
     }
 
     /**
-     * Export to CSV Helper
+     * Export Menu Dropdown Toggle
      */
-    function exportToCSV() {
-      let csv = "Nomor Urut,Nama Peserta,Lolos Semifinal,Lolos Final,Babak,Kata Ke,Durasi (Detik),Batas Limit (Detik),Status Limit,Rata-Rata Babak (Detik)\n";
+    function toggleExportMenu(forceState) {
+      const menu = document.getElementById('export-dropdown-menu');
+      if (!menu) return;
+      const isHidden = menu.classList.contains('hidden');
+      const shouldOpen = (forceState !== undefined) ? forceState : isHidden;
+      if (shouldOpen) {
+        menu.classList.remove('hidden');
+      } else {
+        menu.classList.add('hidden');
+      }
+    }
 
-      ['penyisihan', 'semifinal', 'final'].forEach(round => {
-        const roundLimit = appConfig.limits[round];
-        const maxWords = appConfig.wordsCount[round];
+    // Close export dropdown when clicking outside
+    document.addEventListener('click', function(e) {
+      const wrapper = document.getElementById('export-dropdown-wrapper');
+      if (wrapper && !wrapper.contains(e.target)) {
+        toggleExportMenu(false);
+      }
+    });
 
-        participants.forEach(p => {
-          const times = (p.times && p.times[round]) ? p.times[round] : [];
+    /**
+     * Export to Native Excel (.xlsx) with Multi-Sheet per Round
+     */
+    function exportToExcel() {
+      if (typeof XLSX === 'undefined') {
+        alert('Modul Excel sedang dimuat atau tidak tersedia, sistem akan mengunduh format CSV terstruktur.');
+        exportToCSV();
+        return;
+      }
+
+      const wb = XLSX.utils.book_new();
+
+      // 1. Sheet: Rekap Keseluruhan
+      const masterRows = [
+        ["Rekap Data Dukung Waktu Lomba Eja Kata"],
+        ["Balai Bahasa Riau | Pencatatan Waktu dan Penentuan Seri"],
+        [],
+        ["No Urut", "Nama Peserta", "Lolos Semifinal", "Lolos Final", "Rata-rata Penyisihan (detik)", "Rata-rata Semifinal (detik)", "Rata-rata Final (detik)", "Status Keterangan"]
+      ];
+
+      participants.forEach(p => {
+        const avgP = calculateAverage(p.times?.penyisihan);
+        const avgS = calculateAverage(p.times?.semifinal);
+        const avgF = calculateAverage(p.times?.final);
+
+        let statusKet = "Peserta penyisihan";
+        if (p.qualifiedFinal) statusKet = "Finalis";
+        else if (p.qualifiedSemifinal) statusKet = "Semifinalis";
+
+        masterRows.push([
+          p.no,
+          p.name,
+          p.qualifiedSemifinal ? "Lolos" : "Belum",
+          p.qualifiedFinal ? "Lolos" : "Belum",
+          avgP !== null ? Number(avgP.toFixed(2)) : "-",
+          avgS !== null ? Number(avgS.toFixed(2)) : "-",
+          avgF !== null ? Number(avgF.toFixed(2)) : "-",
+          statusKet
+        ]);
+      });
+
+      const wsMaster = XLSX.utils.aoa_to_sheet(masterRows);
+      wsMaster['!cols'] = [
+        { wch: 8 },
+        { wch: 24 },
+        { wch: 16 },
+        { wch: 14 },
+        { wch: 26 },
+        { wch: 26 },
+        { wch: 22 },
+        { wch: 20 }
+      ];
+      XLSX.utils.book_append_sheet(wb, wsMaster, "Rekap Keseluruhan");
+
+      // 2. Sheet per Babak: Penyisihan, Semifinal, Final
+      const roundDefs = [
+        { key: 'penyisihan', title: 'Babak Penyisihan', qualKey: 'qualifiedSemifinal', qualHeader: 'Lolos Semifinal' },
+        { key: 'semifinal', title: 'Babak Semifinal', qualKey: 'qualifiedFinal', qualHeader: 'Lolos Final' },
+        { key: 'final', title: 'Babak Final', qualKey: null, qualHeader: null }
+      ];
+
+      roundDefs.forEach(r => {
+        const roundLimit = appConfig.limits[r.key];
+        const maxWords = appConfig.wordsCount[r.key];
+
+        const targetList = (r.key === 'penyisihan')
+          ? participants
+          : participants.filter(p => p[r.key === 'semifinal' ? 'qualifiedSemifinal' : 'qualifiedFinal']);
+
+        const headerRow = ["No Urut", "Nama Peserta"];
+        for (let w = 0; w < maxWords; w++) {
+          headerRow.push(`Kata ${w + 1} (detik)`);
+        }
+        headerRow.push("Rata-rata (detik)", "Total Waktu (detik)", "Catatan Batas Limit");
+        if (r.qualHeader) {
+          headerRow.push(r.qualHeader);
+        } else if (r.key === 'final') {
+          headerRow.push("Peringkat Rata-rata");
+        }
+
+        const sheetRows = [
+          [`Data Dukung Durasi - ${r.title}`],
+          [`Batas maksimal: ${roundLimit.toFixed(1)} detik | Total kuota: ${maxWords} kata`],
+          [],
+          headerRow
+        ];
+
+        // Sort final by average for ranking if in final
+        let sortedList = targetList;
+        if (r.key === 'final') {
+          sortedList = [...targetList].sort((a, b) => {
+            const avgA = calculateAverage(a.times?.final);
+            const avgB = calculateAverage(b.times?.final);
+            if (avgA === null) return 1;
+            if (avgB === null) return -1;
+            return avgA - avgB;
+          });
+        }
+
+        sortedList.forEach((p, idx) => {
+          const times = (p.times && p.times[r.key]) ? p.times[r.key] : [];
           const avg = calculateAverage(times);
-          const avgStr = avg !== null ? avg.toFixed(2) : "";
+          const total = calculateTotal(times);
+
+          let overLimitCount = 0;
+          const overWordList = [];
+          const row = [p.no, p.name];
 
           for (let w = 0; w < maxWords; w++) {
             const t = times[w];
-            const secStr = (t !== undefined && t !== null) ? (t / 1000).toFixed(2) : "";
-            const isOver = (t !== undefined && t !== null && (t / 1000) > roundLimit);
-            const status = (secStr === "") ? "Belum Diisi" : (isOver ? "JEBOL LIMIT" : "Aman");
-
-            csv += `"${p.no}","${p.name}","${p.qualifiedSemifinal ? 'Ya' : 'Tidak'}","${p.qualifiedFinal ? 'Ya' : 'Tidak'}","${round}","Kata ${w+1}","${secStr}","${roundLimit}","${status}","${avgStr}"\n`;
+            if (t !== undefined && t !== null) {
+              row.push(Number((t / 1000).toFixed(2)));
+              if (t / 1000 > roundLimit) {
+                overLimitCount++;
+                overWordList.push(`Kata ${w + 1}`);
+              }
+            } else {
+              row.push("-");
+            }
           }
+
+          row.push(avg !== null ? Number(avg.toFixed(2)) : "-");
+          row.push(total !== null ? Number(total.toFixed(2)) : "-");
+
+          if (overLimitCount > 0) {
+            row.push(`${overLimitCount}x jebol limit (${overWordList.join(', ')})`);
+          } else if (times.some(t => t !== null && t !== undefined)) {
+            row.push("Aman dalam batas limit");
+          } else {
+            row.push("Belum direkam");
+          }
+
+          if (r.qualHeader) {
+            row.push(p[r.qualKey] ? "Lolos" : "Belum");
+          } else if (r.key === 'final') {
+            row.push(avg !== null ? `Peringkat ${idx + 1}` : "-");
+          }
+
+          sheetRows.push(row);
         });
+
+        const wsRound = XLSX.utils.aoa_to_sheet(sheetRows);
+        const colWidths = [{ wch: 8 }, { wch: 24 }];
+        for (let w = 0; w < maxWords; w++) {
+          colWidths.push({ wch: 15 });
+        }
+        colWidths.push({ wch: 18 }, { wch: 18 }, { wch: 28 }, { wch: 18 });
+        wsRound['!cols'] = colWidths;
+
+        XLSX.utils.book_append_sheet(wb, wsRound, r.title);
+      });
+
+      const todayStr = new Date().toISOString().slice(0, 10);
+      XLSX.writeFile(wb, `Rekap_Waktu_Lomba_Eja_Kata_${todayStr}.xlsx`);
+    }
+
+    /**
+     * Export to Structured CSV Helper (Clear Section Blocks per Round)
+     */
+    function exportToCSV() {
+      let csv = "# REKAP DATA DUKUNG WAKTU LOMBA EJA KATA\n";
+      csv += "# BALAI BAHASA RIAU | PENCATATAN WAKTU DAN DATA DUKUNG SERI\n\n";
+
+      const roundDefs = [
+        { key: 'penyisihan', title: 'BABAK PENYISIHAN', qualKey: 'qualifiedSemifinal', qualHeader: 'Status Lolos Semifinal' },
+        { key: 'semifinal', title: 'BABAK SEMIFINAL', qualKey: 'qualifiedFinal', qualHeader: 'Status Lolos Final' },
+        { key: 'final', title: 'BABAK FINAL', qualKey: null, qualHeader: null }
+      ];
+
+      roundDefs.forEach(r => {
+        const roundLimit = appConfig.limits[r.key];
+        const maxWords = appConfig.wordsCount[r.key];
+        const targetList = (r.key === 'penyisihan')
+          ? participants
+          : participants.filter(p => p[r.key === 'semifinal' ? 'qualifiedSemifinal' : 'qualifiedFinal']);
+
+        csv += `=== ${r.title} (Batas ${roundLimit.toFixed(1)} Detik | Total ${maxWords} Kata) ===\n`;
+
+        let headerCols = ["Nomor Urut", "Nama Peserta"];
+        for (let w = 0; w < maxWords; w++) {
+          headerCols.push(`Kata ${w + 1} (Detik)`);
+        }
+        headerCols.push("Rata-rata (Detik)", "Total Waktu (Detik)", "Catatan Batas Limit");
+        if (r.qualHeader) {
+          headerCols.push(r.qualHeader);
+        } else if (r.key === 'final') {
+          headerCols.push("Peringkat Waktu");
+        }
+
+        csv += headerCols.map(c => `"${c}"`).join(",") + "\n";
+
+        let sortedList = targetList;
+        if (r.key === 'final') {
+          sortedList = [...targetList].sort((a, b) => {
+            const avgA = calculateAverage(a.times?.final);
+            const avgB = calculateAverage(b.times?.final);
+            if (avgA === null) return 1;
+            if (avgB === null) return -1;
+            return avgA - avgB;
+          });
+        }
+
+        sortedList.forEach((p, idx) => {
+          const times = (p.times && p.times[r.key]) ? p.times[r.key] : [];
+          const avg = calculateAverage(times);
+          const total = calculateTotal(times);
+
+          let overLimitCount = 0;
+          const overWordList = [];
+          const rowVals = [p.no, p.name];
+
+          for (let w = 0; w < maxWords; w++) {
+            const t = times[w];
+            if (t !== undefined && t !== null) {
+              rowVals.push((t / 1000).toFixed(2));
+              if (t / 1000 > roundLimit) {
+                overLimitCount++;
+                overWordList.push(`Kata ${w + 1}`);
+              }
+            } else {
+              rowVals.push("-");
+            }
+          }
+
+          rowVals.push(avg !== null ? avg.toFixed(2) : "-");
+          rowVals.push(total !== null ? total.toFixed(2) : "-");
+
+          if (overLimitCount > 0) {
+            rowVals.push(`${overLimitCount}x jebol limit (${overWordList.join(', ')})`);
+          } else if (times.some(t => t !== null && t !== undefined)) {
+            rowVals.push("Aman dalam batas limit");
+          } else {
+            rowVals.push("Belum direkam");
+          }
+
+          if (r.qualHeader) {
+            rowVals.push(p[r.qualKey] ? "Lolos" : "Belum");
+          } else if (r.key === 'final') {
+            rowVals.push(avg !== null ? `Peringkat ${idx + 1}` : "-");
+          }
+
+          csv += rowVals.map(v => `"${v}"`).join(",") + "\n";
+        });
+
+        csv += "\n";
+      });
+
+      // Ringkasan Master Matriks
+      csv += "=== REKAP RATA-RATA SEMUA BABAK ===\n";
+      csv += `"Nomor Urut","Nama Peserta","Lolos Semifinal","Lolos Final","Rata-rata Penyisihan (Detik)","Rata-rata Semifinal (Detik)","Rata-rata Final (Detik)","Status Peserta"\n`;
+
+      participants.forEach(p => {
+        const avgP = calculateAverage(p.times?.penyisihan);
+        const avgS = calculateAverage(p.times?.semifinal);
+        const avgF = calculateAverage(p.times?.final);
+
+        let statusKet = "Peserta penyisihan";
+        if (p.qualifiedFinal) statusKet = "Finalis";
+        else if (p.qualifiedSemifinal) statusKet = "Semifinalis";
+
+        csv += `"${p.no}","${p.name}","${p.qualifiedSemifinal ? 'Lolos' : 'Belum'}","${p.qualifiedFinal ? 'Lolos' : 'Belum'}","${avgP !== null ? avgP.toFixed(2) : '-'}","${avgS !== null ? avgS.toFixed(2) : '-'}","${avgF !== null ? avgF.toFixed(2) : '-'}","${statusKet}"\n`;
       });
 
       const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.setAttribute("href", url);
-      link.setAttribute("download", `Rekap_Waktu_Lomba_Eja_Kata_${new Date().toISOString().slice(0,10)}.csv`);
+      link.setAttribute("download", `Rekap_Waktu_Lomba_Eja_Kata_${new Date().toISOString().slice(0, 10)}.csv`);
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -1893,31 +2203,26 @@
      */
     function setupKeyboardShortcuts() {
       window.addEventListener('keydown', (e) => {
-        // Prevent shortcuts when user is typing in inputs or textareas
         const activeTag = document.activeElement ? document.activeElement.tagName.toLowerCase() : '';
         if (activeTag === 'input' || activeTag === 'textarea' || activeTag === 'select') {
           return;
         }
 
-        // Spacebar: Start / Stop
         if (e.code === 'Space') {
           e.preventDefault();
           toggleTimer();
         }
 
-        // Key 'R': Reset / Retake
         if (e.key === 'r' || e.key === 'R') {
           e.preventDefault();
           resetActiveWordTime();
         }
 
-        // Arrow Left: Previous Participant
         if (e.key === 'ArrowLeft') {
           e.preventDefault();
           navigateParticipant(-1);
         }
 
-        // Arrow Right: Next Participant
         if (e.key === 'ArrowRight') {
           e.preventDefault();
           navigateParticipant(1);
