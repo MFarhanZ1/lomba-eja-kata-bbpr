@@ -1,0 +1,1929 @@
+<!DOCTYPE html>
+<html lang="id" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Time Tracker - Lomba Eja Kata Bahasa Indonesia</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Google Fonts: Inter & JetBrains Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+          },
+          colors: {
+            brand: {
+              50: '#f0fdf4',
+              500: '#22c55e',
+              600: '#16a34a',
+              700: '#15803d',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    /* Custom Scrollbars */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: rgba(15, 23, 42, 0.6);
+    }
+    ::-webkit-scrollbar-thumb {
+      background: rgba(51, 65, 85, 0.8);
+      border-radius: 9999px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: rgba(100, 116, 139, 1);
+    }
+    .timer-glow-normal {
+      text-shadow: 0 0 35px rgba(99, 102, 241, 0.35);
+    }
+    .timer-glow-warning {
+      text-shadow: 0 0 35px rgba(244, 63, 94, 0.7);
+    }
+  </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen font-sans flex flex-col selection:bg-indigo-500 selection:text-white">
+
+  <!-- Top App Navigation Bar -->
+  <header class="border-b border-slate-850 bg-slate-900/80 backdrop-blur sticky top-0 z-30">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4">
+      <!-- Title & Branding with Official Event Logo -->
+      <div class="flex items-center gap-3">
+        <div class="flex items-center justify-center shrink-0">
+          <img 
+            src="Nomor_Lomba__1_-removebg-preview.png" 
+            alt="Logo Lomba Eja Kata 2026" 
+            class="h-10 sm:h-12 w-auto object-contain drop-shadow-md"
+            onerror="this.onerror=null; this.parentElement.innerHTML='<div class=\'w-10 h-10 rounded-xl bg-gradient-to-br from-blue-600 via-indigo-600 to-amber-500 flex items-center justify-center shadow-lg text-white font-black text-xs\'>EJA</div>';"
+          />
+        </div>
+        <div>
+          <div class="flex items-center gap-2">
+            <h1 class="font-bold text-sm sm:text-base text-white tracking-tight leading-tight">Time Tracker Lomba Eja Kata</h1>
+            <span class="hidden sm:inline-block px-2 py-0.5 rounded text-[10px] font-semibold bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">Data Dukung</span>
+          </div>
+          <p class="text-xs text-slate-400 hidden sm:block">Balai Bahasa Riau • Pencatatan Waktu & Data Dukung Seri</p>
+        </div>
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="flex items-center gap-2 sm:gap-2.5">
+        <!-- Button: Comparator -->
+        <button 
+          onclick="openComparatorModal()" 
+          class="px-3 py-2 rounded-xl text-xs font-semibold bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 border border-emerald-500/30 transition flex items-center gap-1.5 shadow-sm"
+          title="Bandingkan catatan waktu peserta per babak"
+        >
+          <span>⚖️</span>
+          <span class="hidden md:inline">Komparator Waktu</span>
+        </button>
+
+        <!-- Button: Qualification Selection -->
+        <button 
+          onclick="openQualificationModal()" 
+          class="px-3 py-2 rounded-xl text-xs font-semibold bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 border border-indigo-500/30 transition flex items-center gap-1.5 shadow-sm"
+          title="Pilih manual peserta yang lolos ke Semifinal dan Final"
+        >
+          <span>🎯</span>
+          <span class="hidden md:inline">Seleksi Lolos Babak</span>
+        </button>
+
+        <!-- Button: Setup Config -->
+        <button 
+          onclick="openConfigModal()" 
+          class="px-3 py-2 rounded-xl text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition flex items-center gap-1.5"
+          title="Ubah batas waktu & kuota kata per babak"
+        >
+          <span>⚙️</span>
+          <span class="hidden sm:inline">Setup Babak</span>
+        </button>
+
+        <!-- Button: Export CSV -->
+        <button 
+          onclick="exportToCSV()" 
+          class="px-3 py-2 rounded-xl text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition flex items-center gap-1.5"
+          title="Unduh seluruh rekap ke file CSV"
+        >
+          <span>📥</span>
+          <span class="hidden sm:inline">Ekspor CSV</span>
+        </button>
+
+        <!-- Button: Manage Participants -->
+        <button 
+          onclick="openParticipantsModal()" 
+          class="px-3 py-2 rounded-xl text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition flex items-center gap-1.5"
+          title="Kelola & reset daftar 40 peserta"
+        >
+          <span>👥</span>
+          <span class="hidden lg:inline">Daftar Peserta</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content Layout -->
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 flex-1 w-full flex flex-col gap-5">
+    
+    <!-- Round Switcher Banner -->
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl p-2 sm:p-2.5 flex items-center justify-between gap-3 shadow-md">
+      <div class="flex items-center gap-2 overflow-x-auto py-0.5">
+        <span class="text-xs text-slate-400 font-semibold px-2 hidden sm:inline">PILIH BABAK:</span>
+        <button 
+          id="btn-round-penyisihan" 
+          onclick="switchRound('penyisihan')"
+          class="px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 bg-indigo-600 text-white shadow-md shadow-indigo-600/30"
+        >
+          <span>Penyisihan</span>
+          <span class="text-[10px] px-1.5 py-0.5 rounded-full bg-indigo-950/60 text-indigo-200 font-mono" id="badge-round-penyisihan">3 Kata</span>
+        </button>
+
+        <button 
+          id="btn-round-semifinal" 
+          onclick="switchRound('semifinal')"
+          class="px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 bg-slate-800 text-slate-400 hover:text-white"
+        >
+          <span>Semifinal</span>
+          <span class="text-[10px] px-1.5 py-0.5 rounded-full bg-slate-900 text-slate-400 font-mono" id="badge-round-semifinal">3 Kata</span>
+        </button>
+
+        <button 
+          id="btn-round-final" 
+          onclick="switchRound('final')"
+          class="px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 bg-slate-800 text-slate-400 hover:text-white"
+        >
+          <span>Final</span>
+          <span class="text-[10px] px-1.5 py-0.5 rounded-full bg-slate-900 text-slate-400 font-mono" id="badge-round-final">5 Kata</span>
+        </button>
+      </div>
+
+      <!-- Quick info indicator -->
+      <div class="hidden md:flex items-center gap-3 text-xs text-slate-400 pr-2 font-mono">
+        <div>Batas Maksimal: <span class="text-amber-400 font-bold font-mono" id="current-limit-indicator">10.0 detik</span></div>
+        <div class="text-slate-600">|</div>
+        <div>Total Kuota: <span class="text-emerald-400 font-bold font-mono" id="current-words-indicator">3 Kata</span></div>
+      </div>
+    </div>
+
+    <!-- Dual Column Symmetrical Grid -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-5 items-stretch lg:h-[620px]">
+      
+      <!-- LEFT COLUMN: Active Stopwatch, Controls & Word Slots (7 Cols) -->
+      <div class="lg:col-span-7 flex flex-col justify-between gap-4 h-full min-h-0">
+        
+        <!-- Active Participant Display Bar (Tanpa Dropdown) -->
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-3 shrink-0">
+          <div class="flex items-center gap-3 w-full sm:w-auto">
+            <button 
+              onclick="navigateParticipant(-1)" 
+              class="w-10 h-10 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 transition text-base flex items-center justify-center font-bold shrink-0"
+              title="Peserta Sebelumnya (Shortcut: Tombol Panah Kiri)"
+            >
+              ◀
+            </button>
+            <div class="flex-1 sm:flex-initial min-w-0">
+              <label class="text-[10px] font-semibold text-slate-400 uppercase tracking-wider block mb-0.5">Peserta Sedang Tampil</label>
+              <div class="flex items-center gap-2">
+                <span id="active-p-badge" class="px-2 py-0.5 rounded-lg bg-indigo-600/20 border border-indigo-500/30 text-indigo-300 font-mono font-bold text-xs shrink-0">#1</span>
+                <span id="active-p-name" class="font-bold text-sm sm:text-base text-white truncate max-w-[180px] sm:max-w-[240px]">Jihan</span>
+              </div>
+            </div>
+            <button 
+              onclick="navigateParticipant(1)" 
+              class="w-10 h-10 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 transition text-base flex items-center justify-center font-bold shrink-0"
+              title="Peserta Selanjutnya (Shortcut: Tombol Panah Kanan)"
+            >
+              ▶
+            </button>
+          </div>
+
+          <!-- Active Average & Count Display (Simetris & Sejajar) -->
+          <div class="flex items-stretch gap-4 w-full sm:w-auto justify-end border-t sm:border-t-0 pt-2.5 sm:pt-0 border-slate-800">
+            <div class="text-right flex flex-col justify-center min-w-[110px]">
+              <div class="text-[10px] uppercase font-semibold text-slate-400 leading-tight">Rata-Rata Waktu</div>
+              <div class="text-sm sm:text-base font-bold font-mono text-emerald-400 mt-0.5 h-6 flex items-center justify-end" id="active-avg-display">0.00 detik</div>
+            </div>
+            <div class="w-px bg-slate-800 self-stretch my-0.5"></div>
+            <div class="text-right flex flex-col justify-center min-w-[75px]">
+              <div class="text-[10px] uppercase font-semibold text-slate-400 leading-tight">Status Kata</div>
+              <div class="text-sm sm:text-base font-bold font-mono text-slate-200 mt-0.5 h-6 flex items-center justify-end" id="active-progress-display">0/3</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Main Live Stopwatch Arena -->
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl flex flex-col items-center justify-center text-center relative overflow-hidden flex-1 min-h-0">
+          
+          <!-- Background Glow Effect -->
+          <div id="glow-backdrop" class="absolute -top-24 -left-24 w-64 h-64 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none transition-all duration-500"></div>
+
+          <!-- Limit Badge Pill (Info Statis Batas Waktu) -->
+          <div id="limit-status-pill" class="mb-2 px-3.5 py-1 rounded-full text-xs font-semibold uppercase tracking-wider bg-slate-800 text-slate-300 border border-slate-700 flex items-center gap-1.5">
+            <span class="w-2 h-2 rounded-full bg-slate-400" id="limit-pulse-dot"></span>
+            <span id="limit-pill-text">Batas Maksimal: <span id="pill-limit-val">10.0</span> detik</span>
+          </div>
+
+          <!-- Giant Digital Stopwatch Display (Diperbesar) -->
+          <div id="timer-display" class="font-mono text-6xl sm:text-7xl lg:text-8xl font-black tracking-tight text-white py-1 sm:py-2 timer-glow-normal select-none">
+            00:00.00
+          </div>
+
+          <!-- Balanced Status & Overtime Row (Always visible to maintain layout symmetry) -->
+          <div id="overtime-diff" class="text-xs sm:text-sm font-medium text-slate-400 h-6 mt-1 flex items-center justify-center transition-all duration-200">
+            Siap merekam • Menghitung maju dari 00:00
+          </div>
+
+          <!-- Stopwatch Action Controls -->
+          <div class="flex items-center gap-3 mt-4 w-full max-w-sm">
+            <!-- Start / Stop Button -->
+            <button 
+              id="btn-toggle" 
+              onclick="toggleTimer()" 
+              class="flex-1 py-3.5 px-6 rounded-2xl font-black text-sm tracking-wide uppercase transition-all duration-150 transform active:scale-95 shadow-lg bg-emerald-600 hover:bg-emerald-500 text-white shadow-emerald-600/30 flex items-center justify-center gap-2"
+            >
+              <span id="btn-toggle-icon">▶</span>
+              <span id="btn-toggle-text">Mulai (Start)</span>
+            </button>
+
+            <!-- Reset / Retake Word Button -->
+            <button 
+              id="btn-reset" 
+              onclick="resetActiveWordTime()" 
+              class="py-3.5 px-5 rounded-2xl font-bold text-xs sm:text-sm transition-all duration-150 bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 flex items-center justify-center gap-1.5"
+              title="Ulangi pencatatan untuk kata ini (Shortcut: R)"
+            >
+              <span>↺</span>
+              <span>Ulang</span>
+            </button>
+          </div>
+
+          <div class="text-[11px] text-slate-500 mt-2.5 hidden sm:block">
+            Tekan <kbd class="px-1.5 py-0.5 rounded bg-slate-800 text-slate-300 font-mono text-[10px] border border-slate-700">Spasi</kbd> untuk Start/Stop • <kbd class="px-1.5 py-0.5 rounded bg-slate-800 text-slate-300 font-mono text-[10px] border border-slate-700">R</kbd> untuk Ulangi Kata
+          </div>
+        </div>
+
+        <!-- Word Slots Indicator Container -->
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-sm flex flex-col gap-2 shrink-0">
+          <div class="flex items-center justify-between text-xs text-slate-400 font-semibold px-1">
+            <span>SLOT KATA BABAK INI</span>
+            <span class="text-[11px] text-slate-500 font-normal">Klik slot untuk merekam ulang kata tertentu</span>
+          </div>
+          <div id="word-slots-container" class="grid grid-cols-3 sm:grid-cols-5 gap-2.5">
+            <!-- Rendered by JS -->
+          </div>
+        </div>
+
+      </div>
+
+      <!-- RIGHT COLUMN: Search & Rekap Data Dukung Durasi (5 Cols) -->
+      <div class="lg:col-span-5 flex flex-col bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-sm h-[560px] lg:h-full min-h-0 overflow-hidden">
+        
+        <!-- Header -->
+        <div class="flex items-center justify-between pb-3 border-b border-slate-800 shrink-0">
+          <div>
+            <h2 class="font-bold text-sm text-white flex items-center gap-1.5">
+              <span>📋</span> Data Dukung Durasi
+            </h2>
+            <p class="text-[11px] text-slate-400">Ringkasan waktu per kata & rata-rata</p>
+          </div>
+          <span class="text-[11px] font-bold px-2 py-0.5 rounded-full bg-slate-800 text-slate-300 border border-slate-700" id="summary-round-label">
+            Babak Penyisihan
+          </span>
+        </div>
+
+        <!-- Clean Instant Search Bar -->
+        <div class="py-3 shrink-0">
+          <div class="relative">
+            <span class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-500 text-sm">🔍</span>
+            <input 
+              type="text" 
+              id="search-input" 
+              oninput="renderSummaryList()" 
+              placeholder="Cari nama atau nomor urut..." 
+              class="w-full bg-slate-950 border border-slate-800 rounded-xl pl-9 pr-3 py-2 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-indigo-500 transition"
+            >
+          </div>
+          <div class="flex items-center justify-between text-xs px-1 mt-2 text-slate-400">
+            <span class="text-[11px] text-slate-400 font-medium">Daftar peserta aktif babak ini</span>
+            <span class="text-slate-500 font-mono text-[11px]"><span id="summary-count">40</span> peserta</span>
+          </div>
+        </div>
+
+        <!-- Participant Cards List (Fluid vertical scroll filling container without breaking layout) -->
+        <div id="summary-list" class="flex-1 min-h-0 overflow-y-auto pr-1 space-y-2">
+          <!-- Populated by JS -->
+        </div>
+
+      </div>
+
+    </div>
+  </main>
+
+  <!-- ==================== MODALS ==================== -->
+
+  <!-- MODAL 1: SETUP BABAK & KUOTA KATA -->
+  <div id="modal-config" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm hidden flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl">
+      <div class="flex items-center justify-between pb-4 border-b border-slate-800">
+        <h3 class="font-bold text-base text-white flex items-center gap-2">
+          <span>⚙️</span> Setup Batas Waktu & Kuota Kata
+        </h3>
+        <button onclick="closeConfigModal()" class="text-slate-400 hover:text-white text-lg">✕</button>
+      </div>
+
+      <div class="py-4 space-y-4">
+        <p class="text-xs text-slate-400 leading-relaxed">
+          Atur batas maksimal durasi (detik) dan total kata per peserta. Peringatan visual warna merah akan aktif saat stopwatch melampaui limit ini.
+        </p>
+
+        <!-- Penyisihan -->
+        <div class="bg-slate-950 p-3.5 rounded-xl border border-slate-800 space-y-2">
+          <div class="font-bold text-xs text-indigo-400">Babak Penyisihan</div>
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="text-[10px] text-slate-400 font-medium block mb-1">Limit Waktu (Detik)</label>
+              <input type="number" id="cfg-limit-penyisihan" min="1" max="120" step="1" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs font-mono text-white focus:outline-none focus:border-indigo-500">
+            </div>
+            <div>
+              <label class="text-[10px] text-slate-400 font-medium block mb-1">Total Kata</label>
+              <input type="number" id="cfg-words-penyisihan" min="1" max="10" step="1" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs font-mono text-white focus:outline-none focus:border-indigo-500">
+            </div>
+          </div>
+        </div>
+
+        <!-- Semifinal -->
+        <div class="bg-slate-950 p-3.5 rounded-xl border border-slate-800 space-y-2">
+          <div class="font-bold text-xs text-indigo-400">Babak Semifinal</div>
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="text-[10px] text-slate-400 font-medium block mb-1">Limit Waktu (Detik)</label>
+              <input type="number" id="cfg-limit-semifinal" min="1" max="120" step="1" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs font-mono text-white focus:outline-none focus:border-indigo-500">
+            </div>
+            <div>
+              <label class="text-[10px] text-slate-400 font-medium block mb-1">Total Kata</label>
+              <input type="number" id="cfg-words-semifinal" min="1" max="10" step="1" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs font-mono text-white focus:outline-none focus:border-indigo-500">
+            </div>
+          </div>
+        </div>
+
+        <!-- Final -->
+        <div class="bg-slate-950 p-3.5 rounded-xl border border-slate-800 space-y-2">
+          <div class="font-bold text-xs text-indigo-400">Babak Final</div>
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="text-[10px] text-slate-400 font-medium block mb-1">Limit Waktu (Detik)</label>
+              <input type="number" id="cfg-limit-final" min="1" max="120" step="1" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs font-mono text-white focus:outline-none focus:border-indigo-500">
+            </div>
+            <div>
+              <label class="text-[10px] text-slate-400 font-medium block mb-1">Total Kata</label>
+              <input type="number" id="cfg-words-final" min="1" max="10" step="1" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs font-mono text-white focus:outline-none focus:border-indigo-500">
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="flex items-center justify-end gap-2 pt-3 border-t border-slate-800">
+        <button onclick="closeConfigModal()" class="px-4 py-2 rounded-xl text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-300">Batal</button>
+        <button onclick="saveConfiguration()" class="px-4 py-2 rounded-xl text-xs font-bold bg-indigo-600 hover:bg-indigo-500 text-white shadow-md shadow-indigo-600/30">Simpan Pengaturan</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL 2: SELEKSI LOLOS BABAK (SEMIFINAL & FINAL BERJENJANG) -->
+  <div id="modal-qualification" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm hidden flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-2xl w-full p-6 shadow-2xl flex flex-col max-h-[90vh]">
+      <div class="flex items-center justify-between pb-3 border-b border-slate-800 shrink-0">
+        <div>
+          <h3 class="font-bold text-base text-white flex items-center gap-2">
+            <span>🎯</span> Seleksi Peserta Lolos Babak
+          </h3>
+          <p class="text-xs text-slate-400 mt-0.5">Centang peserta yang diputuskan berhak melanjutkan ke babak berikutnya</p>
+        </div>
+        <button onclick="closeQualificationModal()" class="text-slate-400 hover:text-white text-lg">✕</button>
+      </div>
+
+      <!-- Tab Switcher inside Modal -->
+      <div class="flex items-center gap-2 pt-3 pb-2 shrink-0">
+        <button id="btn-tab-qual-semi" onclick="switchQualTab('semifinal')" class="px-3.5 py-1.5 rounded-xl text-xs font-bold bg-indigo-600 text-white transition">
+          Lolos Semifinal (<span id="qual-semi-count">0</span>)
+        </button>
+        <button id="btn-tab-qual-final" onclick="switchQualTab('final')" class="px-3.5 py-1.5 rounded-xl text-xs font-bold bg-slate-800 text-slate-400 hover:text-white transition">
+          Lolos Final (<span id="qual-final-count">0</span>)
+        </button>
+        <div class="flex-1"></div>
+        <button onclick="selectAllQualCurrentTab(true)" class="text-[11px] text-indigo-400 hover:underline px-1">Pilih Semua</button>
+        <button onclick="selectAllQualCurrentTab(false)" class="text-[11px] text-rose-400 hover:underline px-1">Reset</button>
+      </div>
+
+      <!-- Notice Container for Hierarchical Qualification -->
+      <div id="qual-final-notice" class="hidden mb-2 p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-xs text-amber-300 flex flex-col sm:flex-row sm:items-center justify-between gap-2 shrink-0">
+        <span>ℹ️ Hanya peserta yang telah dinyatakan <strong>lolos Semifinal</strong> yang dapat dipilih untuk Babak Final.</span>
+        <span class="font-mono font-bold text-[11px] px-2 py-0.5 rounded bg-amber-500/20 border border-amber-500/30 whitespace-nowrap shrink-0" id="qual-final-pool-count">0 Semifinalis</span>
+      </div>
+
+      <!-- Search inside selection -->
+      <div class="py-2 shrink-0">
+        <input 
+          type="text" 
+          id="qual-search" 
+          oninput="renderQualificationList()" 
+          placeholder="Cari peserta seleksi..." 
+          class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-1.5 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+        >
+      </div>
+
+      <!-- Scrollable Checkboxes -->
+      <div id="qual-participants-list" class="flex-1 overflow-y-auto space-y-1.5 pr-1 py-1">
+        <!-- Rendered by JS -->
+      </div>
+
+      <!-- Footer -->
+      <div class="flex items-center justify-between pt-4 border-t border-slate-800 shrink-0">
+        <span class="text-xs text-slate-400" id="qual-status-summary">Terpilih: 0 peserta</span>
+        <button onclick="closeQualificationModal()" class="px-5 py-2 rounded-xl text-xs font-bold bg-indigo-600 hover:bg-indigo-500 text-white shadow-md shadow-indigo-600/30">
+          Selesai & Terapkan
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL 3: KOMPARATOR WAKTU (MULTI-PESERTA HEAD-TO-HEAD) -->
+  <div id="modal-comparator" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm hidden flex items-center justify-center p-3 sm:p-4">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-4xl w-full p-4 sm:p-6 shadow-2xl flex flex-col max-h-[92vh]">
+      
+      <!-- Modal Header -->
+      <div class="flex items-center justify-between pb-3 border-b border-slate-800 shrink-0">
+        <div>
+          <h3 class="font-bold text-base text-white flex items-center gap-2">
+            <span>⚖️</span> Komparator Waktu Antar Peserta
+          </h3>
+          <p class="text-xs text-slate-400 mt-0.5">Bandingkan durasi per kata dan rata-rata sebagai data dukung penentuan seri</p>
+        </div>
+        <button onclick="closeComparatorModal()" class="text-slate-400 hover:text-white text-lg">✕</button>
+      </div>
+
+      <!-- Controls: Round Selector & Multi-Select Checklist Popover -->
+      <div class="py-3 flex flex-wrap items-center justify-between gap-3 border-b border-slate-800 shrink-0">
+        
+        <!-- Round Switcher inside Comparator -->
+        <div class="flex items-center gap-1.5 bg-slate-950 p-1 rounded-xl border border-slate-800">
+          <span class="text-[11px] font-semibold text-slate-400 px-2">Babak:</span>
+          <button id="btn-comp-penyisihan" onclick="switchComparatorRound('penyisihan')" class="px-2.5 py-1 rounded-lg text-xs font-bold bg-indigo-600 text-white">Penyisihan</button>
+          <button id="btn-comp-semifinal" onclick="switchComparatorRound('semifinal')" class="px-2.5 py-1 rounded-lg text-xs font-bold text-slate-400 hover:text-white">Semifinal</button>
+          <button id="btn-comp-final" onclick="switchComparatorRound('final')" class="px-2.5 py-1 rounded-lg text-xs font-bold text-slate-400 hover:text-white">Final</button>
+        </div>
+
+        <!-- Add Participant Checklist Dropdown Toggle -->
+        <div class="relative">
+          <button 
+            id="btn-toggle-comp-popover" 
+            onclick="toggleCompPopover()" 
+            class="px-3.5 py-1.5 rounded-xl text-xs font-bold bg-emerald-600 hover:bg-emerald-500 text-white flex items-center gap-2 shadow-sm"
+          >
+            <span>+ Pilih Peserta Dibandingkan</span>
+            <span class="text-[10px] px-1.5 py-0.2 rounded-full bg-emerald-900 text-emerald-200" id="comp-selected-count-badge">0</span>
+          </button>
+
+          <!-- Dropdown Popover Menu -->
+          <div id="comp-participants-popover" class="hidden absolute right-0 mt-2 w-72 bg-slate-950 border border-slate-800 rounded-2xl shadow-2xl p-3 z-50 flex flex-col">
+            <div class="flex items-center justify-between pb-2 border-b border-slate-800 mb-2">
+              <span class="text-xs font-bold text-white">Centang Peserta</span>
+              <button onclick="toggleCompPopover(false)" class="text-slate-400 hover:text-white text-xs">✕ Tutup</button>
+            </div>
+            <input 
+              type="text" 
+              id="comp-popover-search" 
+              oninput="renderCompPopoverList()" 
+              placeholder="Cari peserta..." 
+              class="w-full bg-slate-900 border border-slate-800 rounded-lg px-2.5 py-1 text-xs text-slate-200 placeholder-slate-500 focus:outline-none mb-2"
+            >
+            <div id="comp-popover-list" class="max-h-56 overflow-y-auto space-y-1 pr-1">
+              <!-- Populated by JS -->
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Comparison Matrix Table Container -->
+      <div id="comparator-table-container" class="flex-1 overflow-x-auto overflow-y-auto py-3">
+        <!-- Rendered by JS -->
+      </div>
+
+      <!-- Descriptive Analysis Box (Data Dukung Seri) -->
+      <div id="comparator-analysis-box" class="mb-2 p-3.5 rounded-xl bg-slate-950 border border-slate-800 text-xs shrink-0">
+        <!-- Populated by JS -->
+      </div>
+
+      <!-- Modal Footer -->
+      <div class="pt-3 border-t border-slate-800 flex items-center justify-between shrink-0 text-xs text-slate-400">
+        <div>
+          <span>Batas Waktu Babak: <strong class="text-amber-400 font-mono" id="comp-limit-text">10.0 detik</strong></span>
+          <span class="mx-2">•</span>
+          <span>Peserta Tercepat ditandai <strong class="text-emerald-400">hijau</strong></span>
+        </div>
+        <button onclick="closeComparatorModal()" class="px-4 py-1.5 rounded-xl text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-200">
+          Tutup
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- MODAL 4: MANAGE & RESET 40 PARTICIPANTS -->
+  <div id="modal-participants" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm hidden flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-lg w-full p-6 shadow-2xl flex flex-col max-h-[90vh]">
+      <div class="flex items-center justify-between pb-3 border-b border-slate-800 shrink-0">
+        <h3 class="font-bold text-base text-white flex items-center gap-2">
+          <span>👥</span> Kelola Peserta Lomba
+        </h3>
+        <button onclick="closeParticipantsModal()" class="text-slate-400 hover:text-white text-lg">✕</button>
+      </div>
+
+      <div class="py-3 flex-1 overflow-y-auto space-y-3">
+        <p class="text-xs text-slate-400 leading-relaxed">
+          Sistem secara otomatis telah memuat 40 peserta resmi. Kamu dapat mereset data waktu semua peserta atau melakukan impor ulang sesuai kebutuhan format <code>Nomor, Nama</code> per baris.
+        </p>
+
+        <div>
+          <label class="text-[11px] font-semibold text-slate-400 block mb-1">Daftar Teks (Format: Nomor, Nama):</label>
+          <textarea id="bulk-participants-input" rows="8" class="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-xs font-mono text-slate-200 focus:outline-none focus:border-indigo-500"></textarea>
+        </div>
+
+        <div class="flex items-center gap-2">
+          <button onclick="applyBulkParticipants()" class="px-4 py-2 rounded-xl text-xs font-bold bg-indigo-600 hover:bg-indigo-500 text-white">
+            Terapkan Teks Peserta
+          </button>
+          <button onclick="restoreDefault40()" class="px-4 py-2 rounded-xl text-xs font-bold bg-slate-800 hover:bg-slate-700 text-amber-400 border border-slate-700">
+            Kembalikan 40 Peserta Asli
+          </button>
+        </div>
+
+        <div class="pt-2 border-t border-slate-800">
+          <button onclick="clearAllRecordedTimes()" class="w-full py-2.5 rounded-xl text-xs font-bold bg-rose-600/20 hover:bg-rose-600/30 text-rose-300 border border-rose-500/30">
+            ⚠️ Reset Semua Catatan Waktu (Mulai Baru)
+          </button>
+        </div>
+      </div>
+
+      <div class="pt-3 border-t border-slate-800 flex justify-end shrink-0">
+        <button onclick="closeParticipantsModal()" class="px-4 py-2 rounded-xl text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-300">Tutup</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- APPLICATION SCRIPT LOGIC -->
+  <script>
+    /**
+     * Official 40 Default Participants Roster
+     */
+    const DEFAULT_40_PARTICIPANTS = [
+      { no: 1, name: "Jihan" },
+      { no: 2, name: "Hilya" },
+      { no: 3, name: "M Excel" },
+      { no: 4, name: "Yosua" },
+      { no: 5, name: "Alifa" },
+      { no: 6, name: "Alfin" },
+      { no: 7, name: "Jefarani" },
+      { no: 8, name: "Keisha" },
+      { no: 9, name: "Inara" },
+      { no: 10, name: "Natasya" },
+      { no: 11, name: "Khansa" },
+      { no: 12, name: "Khumaira" },
+      { no: 13, name: "Aisyah" },
+      { no: 14, name: "Muhammad Raka" },
+      { no: 15, name: "Mikaelah" },
+      { no: 16, name: "Zafirah" },
+      { no: 17, name: "Farid Fathullah" },
+      { no: 18, name: "May Zahra" },
+      { no: 19, name: "Shafira" },
+      { no: 20, name: "Cut Nadya" },
+      { no: 21, name: "Ananda Stefany" },
+      { no: 22, name: "Elsi Maulani" },
+      { no: 23, name: "Askana Shaki" },
+      { no: 24, name: "Christy" },
+      { no: 25, name: "Aerelyn" },
+      { no: 26, name: "Alyansyah" },
+      { no: 27, name: "Keisha Alya" },
+      { no: 28, name: "Kiran Annisa" },
+      { no: 29, name: "Nabila Zakiya" },
+      { no: 30, name: "Hirwan Hanafi" },
+      { no: 31, name: "Adskhan Luthfi" },
+      { no: 32, name: "Muhammad Hijrah" },
+      { no: 33, name: "Naila Afifa" },
+      { no: 34, name: "Shafeea Akila" },
+      { no: 35, name: "Muhammad Akhdan" },
+      { no: 36, name: "Naufal Fawwaz" },
+      { no: 37, name: "Clhareesa" },
+      { no: 38, name: "Aqila" },
+      { no: 39, name: "Khairan Zafran" },
+      { no: 40, name: "Almurizka Anisa" }
+    ];
+
+    /**
+     * Storage Keys
+     */
+    const STORAGE_KEY_PARTICIPANTS = 'eja_kata_participants_v3';
+    const STORAGE_KEY_CONFIG = 'eja_kata_config_v3';
+
+    /**
+     * App Config: limits (seconds) & wordsCount (number of words)
+     */
+    let appConfig = {
+      limits: {
+        penyisihan: 10,
+        semifinal: 10,
+        final: 15
+      },
+      wordsCount: {
+        penyisihan: 3,
+        semifinal: 3,
+        final: 5
+      }
+    };
+
+    /**
+     * Active Application State
+     */
+    let participants = [];
+    let currentRound = 'penyisihan'; // 'penyisihan' | 'semifinal' | 'final'
+    let activeParticipantNo = 1;
+    let activeWordIndex = 0; // 0-based word slot
+
+    // Stopwatch runtime state
+    let timerRunning = false;
+    let timerStartTime = 0;
+    let timerElapsedMs = 0;
+    let timerInterval = null;
+
+    // Modals state
+    let qualActiveTab = 'semifinal'; // 'semifinal' | 'final'
+    let comparatorRound = 'penyisihan';
+    let comparatorSelectedNos = []; // Empty by default as requested!
+
+    /**
+     * Initialize Application on Window Load
+     */
+    window.onload = function() {
+      loadConfig();
+      loadParticipants();
+      renderAppHeader();
+      renderActiveParticipant();
+      renderSummaryList();
+      setupKeyboardShortcuts();
+    };
+
+    /**
+     * Data Persistence: Config
+     */
+    function loadConfig() {
+      try {
+        const saved = localStorage.getItem(STORAGE_KEY_CONFIG);
+        if (saved) {
+          appConfig = JSON.parse(saved);
+        }
+      } catch (e) {
+        console.error("Gagal membaca konfigurasi dari storage:", e);
+      }
+    }
+
+    function saveConfigToStorage() {
+      try {
+        localStorage.setItem(STORAGE_KEY_CONFIG, JSON.stringify(appConfig));
+      } catch (e) {
+        console.error("Gagal menyimpan konfigurasi:", e);
+      }
+    }
+
+    /**
+     * Data Persistence: Participants
+     */
+    function loadParticipants() {
+      try {
+        const saved = localStorage.getItem(STORAGE_KEY_PARTICIPANTS);
+        if (saved) {
+          participants = JSON.parse(saved);
+        } else {
+          // Initialize default 40
+          participants = DEFAULT_40_PARTICIPANTS.map(p => ({
+            no: p.no,
+            name: p.name,
+            qualifiedSemifinal: false,
+            qualifiedFinal: false,
+            times: {
+              penyisihan: [],
+              semifinal: [],
+              final: []
+            }
+          }));
+          saveParticipantsToStorage();
+        }
+      } catch (e) {
+        console.error("Gagal memuat peserta:", e);
+      }
+
+      // Ensure activeParticipantNo exists
+      if (!participants.some(p => p.no === activeParticipantNo) && participants.length > 0) {
+        activeParticipantNo = participants[0].no;
+      }
+    }
+
+    function saveParticipantsToStorage() {
+      try {
+        localStorage.setItem(STORAGE_KEY_PARTICIPANTS, JSON.stringify(participants));
+      } catch (e) {
+        console.error("Gagal menyimpan peserta:", e);
+      }
+    }
+
+    /**
+     * Helpers: Get Active Participant
+     */
+    function getActiveParticipant() {
+      return participants.find(p => p.no === activeParticipantNo) || participants[0];
+    }
+
+    function getRoundParticipants(round) {
+      if (round === 'semifinal') {
+        return participants.filter(p => p.qualifiedSemifinal);
+      }
+      if (round === 'final') {
+        return participants.filter(p => p.qualifiedFinal);
+      }
+      return participants;
+    }
+
+    /**
+     * Round Switcher
+     */
+    function switchRound(round) {
+      if (timerRunning) {
+        stopTimer(false);
+      }
+
+      currentRound = round;
+      activeWordIndex = 0;
+      timerElapsedMs = 0;
+
+      // Update button styles
+      ['penyisihan', 'semifinal', 'final'].forEach(r => {
+        const btn = document.getElementById(`btn-round-${r}`);
+        if (r === currentRound) {
+          btn.className = "px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 bg-indigo-600 text-white shadow-md shadow-indigo-600/30";
+        } else {
+          btn.className = "px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 bg-slate-800 text-slate-400 hover:text-white";
+        }
+      });
+
+      // Check if current participant belongs to this round
+      const validParticipants = getRoundParticipants(currentRound);
+      if (validParticipants.length > 0 && !validParticipants.some(p => p.no === activeParticipantNo)) {
+        activeParticipantNo = validParticipants[0].no;
+      }
+
+      renderAppHeader();
+      renderActiveParticipant();
+      renderSummaryList();
+    }
+
+    function renderAppHeader() {
+      const currentLimit = appConfig.limits[currentRound];
+      const currentWords = appConfig.wordsCount[currentRound];
+
+      document.getElementById('current-limit-indicator').textContent = `${currentLimit.toFixed(1)} detik`;
+      document.getElementById('current-words-indicator').textContent = `${currentWords} Kata`;
+
+      document.getElementById('badge-round-penyisihan').textContent = `${appConfig.wordsCount.penyisihan} Kata`;
+      document.getElementById('badge-round-semifinal').textContent = `${appConfig.wordsCount.semifinal} Kata`;
+      document.getElementById('badge-round-final').textContent = `${appConfig.wordsCount.final} Kata`;
+    }
+
+    function selectParticipantDirect(no) {
+      if (!no) return;
+      if (timerRunning) stopTimer(false);
+
+      activeParticipantNo = parseInt(no, 10);
+      activeWordIndex = 0;
+      timerElapsedMs = 0;
+
+      renderActiveParticipant();
+      renderSummaryList();
+    }
+
+    function navigateParticipant(direction) {
+      if (timerRunning) stopTimer(false);
+
+      const list = getRoundParticipants(currentRound);
+      if (list.length === 0) return;
+
+      const currentIndex = list.findIndex(p => p.no === activeParticipantNo);
+      let newIndex = currentIndex + direction;
+
+      if (newIndex < 0) newIndex = list.length - 1;
+      if (newIndex >= list.length) newIndex = 0;
+
+      activeParticipantNo = list[newIndex].no;
+      activeWordIndex = 0;
+      timerElapsedMs = 0;
+
+      renderActiveParticipant();
+      renderSummaryList();
+    }
+
+    /**
+     * Active Participant & Word Slots Rendering
+     */
+    function renderActiveParticipant() {
+      const p = getActiveParticipant();
+      const currentWordsCount = appConfig.wordsCount[currentRound];
+      const roundTimes = (p.times && p.times[currentRound]) ? p.times[currentRound] : [];
+
+      // Update Active Participant Display Bar
+      const badgeEl = document.getElementById('active-p-badge');
+      const nameEl = document.getElementById('active-p-name');
+      if (badgeEl && nameEl) {
+        if (p) {
+          badgeEl.textContent = `#${p.no}`;
+          nameEl.textContent = p.name;
+        } else {
+          badgeEl.textContent = `-`;
+          nameEl.textContent = `(Belum ada peserta)`;
+        }
+      }
+
+      // Clamp word index
+      if (activeWordIndex >= currentWordsCount) {
+        activeWordIndex = currentWordsCount - 1;
+      }
+
+      // If active word already has recorded time, load it on timer display
+      if (!timerRunning) {
+        if (roundTimes[activeWordIndex] !== undefined && roundTimes[activeWordIndex] !== null) {
+          timerElapsedMs = roundTimes[activeWordIndex];
+        } else {
+          timerElapsedMs = 0;
+        }
+        updateTimerDisplay(timerElapsedMs);
+      }
+
+      // Progress and average
+      const completedWords = roundTimes.filter(t => t !== null && t !== undefined).length;
+      document.getElementById('active-progress-display').textContent = `${completedWords}/${currentWordsCount}`;
+
+      const avg = calculateAverage(roundTimes);
+      document.getElementById('active-avg-display').textContent = avg !== null ? `${avg.toFixed(2)} detik` : '0.00 detik';
+
+      // Render Word Slots Bar
+      const slotsContainer = document.getElementById('word-slots-container');
+      slotsContainer.innerHTML = '';
+
+      for (let i = 0; i < currentWordsCount; i++) {
+        const timeVal = roundTimes[i];
+        const isSelected = (i === activeWordIndex);
+        const hasValue = (timeVal !== undefined && timeVal !== null);
+        const limitSec = appConfig.limits[currentRound];
+        const isOverLimit = hasValue && (timeVal / 1000 > limitSec);
+
+        const slotBtn = document.createElement('button');
+        slotBtn.onclick = () => selectWordSlot(i);
+
+        let borderClass = isSelected ? 'border-indigo-500 ring-2 ring-indigo-500/30' : 'border-slate-800 hover:border-slate-700';
+        let bgClass = isSelected ? 'bg-indigo-950/40' : 'bg-slate-950';
+
+        let badgeHtml = '';
+        if (hasValue) {
+          const sec = (timeVal / 1000).toFixed(2);
+          if (isOverLimit) {
+            badgeHtml = `<span class="text-rose-400 font-mono font-bold text-xs">${sec} detik ⚠️</span>`;
+          } else {
+            badgeHtml = `<span class="text-emerald-400 font-mono font-bold text-xs">${sec} detik</span>`;
+          }
+        } else {
+          badgeHtml = `<span class="text-slate-600 font-mono text-xs">--.--</span>`;
+        }
+
+        slotBtn.className = `p-2.5 rounded-xl border ${borderClass} ${bgClass} transition flex flex-col items-center justify-center text-center`;
+        slotBtn.innerHTML = `
+          <span class="text-[10px] font-semibold ${isSelected ? 'text-indigo-300' : 'text-slate-400'} uppercase">Kata ${i + 1}</span>
+          ${badgeHtml}
+        `;
+        slotsContainer.appendChild(slotBtn);
+      }
+    }
+
+    function selectWordSlot(index) {
+      if (timerRunning) stopTimer(false);
+      activeWordIndex = index;
+      renderActiveParticipant();
+    }
+
+    /**
+     * Stopwatch Controls & Count-Up Engine
+     */
+    function toggleTimer() {
+      if (timerRunning) {
+        stopTimer(true);
+      } else {
+        startTimer();
+      }
+    }
+
+    function startTimer() {
+      timerRunning = true;
+      timerStartTime = Date.now() - timerElapsedMs;
+
+      // Update UI button state
+      const btn = document.getElementById('btn-toggle');
+      if (btn) {
+        btn.className = "flex-1 py-4 px-6 rounded-2xl font-black text-sm sm:text-base tracking-wide uppercase transition-all duration-150 transform active:scale-95 shadow-lg bg-rose-600 hover:bg-rose-500 text-white shadow-rose-600/30 flex items-center justify-center gap-2";
+      }
+      const icon = document.getElementById('btn-toggle-icon');
+      if (icon) icon.textContent = "⏹";
+      const text = document.getElementById('btn-toggle-text');
+      if (text) text.textContent = "Stop & Simpan";
+
+      const dot = document.getElementById('limit-pulse-dot');
+      if (dot) dot.className = "w-2 h-2 rounded-full bg-emerald-400 animate-ping";
+
+      timerInterval = setInterval(() => {
+        timerElapsedMs = Date.now() - timerStartTime;
+        updateTimerDisplay(timerElapsedMs);
+      }, 10);
+    }
+
+    function stopTimer(saveResult = true) {
+      if (!timerRunning) return;
+      clearInterval(timerInterval);
+      timerRunning = false;
+
+      // Reset button UI
+      const btn = document.getElementById('btn-toggle');
+      if (btn) {
+        btn.className = "flex-1 py-4 px-6 rounded-2xl font-black text-sm sm:text-base tracking-wide uppercase transition-all duration-150 transform active:scale-95 shadow-lg bg-emerald-600 hover:bg-emerald-500 text-white shadow-emerald-600/30 flex items-center justify-center gap-2";
+      }
+      const icon = document.getElementById('btn-toggle-icon');
+      if (icon) icon.textContent = "▶";
+      const text = document.getElementById('btn-toggle-text');
+      if (text) text.textContent = "Mulai (Start)";
+
+      const dot = document.getElementById('limit-pulse-dot');
+      if (dot) dot.className = "w-2 h-2 rounded-full bg-slate-400";
+
+      if (saveResult) {
+        saveRecordedTime(timerElapsedMs);
+      } else {
+        updateTimerDisplay(timerElapsedMs);
+      }
+    }
+
+    function saveRecordedTime(ms) {
+      const p = getActiveParticipant();
+      if (!p.times[currentRound]) {
+        p.times[currentRound] = [];
+      }
+      p.times[currentRound][activeWordIndex] = ms;
+      saveParticipantsToStorage();
+
+      const currentWordsCount = appConfig.wordsCount[currentRound];
+      // Automatically advance to the next word slot if available
+      if (activeWordIndex < currentWordsCount - 1) {
+        activeWordIndex++;
+        timerElapsedMs = 0;
+      }
+
+      renderActiveParticipant();
+      renderSummaryList();
+    }
+
+    function resetActiveWordTime() {
+      if (timerRunning) {
+        stopTimer(false);
+      }
+      timerElapsedMs = 0;
+      const p = getActiveParticipant();
+      if (p.times[currentRound] && p.times[currentRound][activeWordIndex] !== undefined) {
+        p.times[currentRound][activeWordIndex] = null;
+        saveParticipantsToStorage();
+      }
+      updateTimerDisplay(0);
+      renderActiveParticipant();
+      renderSummaryList();
+    }
+
+    /**
+     * Digital Counter Display & Always-Balanced Symmetrical Feedback
+     */
+    function updateTimerDisplay(ms) {
+      const timerEl = document.getElementById('timer-display');
+      const totalSeconds = ms / 1000;
+
+      const minutes = Math.floor(totalSeconds / 60);
+      const seconds = Math.floor(totalSeconds % 60);
+      const hundredths = Math.floor((ms % 1000) / 10);
+
+      const formatted = 
+        String(minutes).padStart(2, '0') + ':' +
+        String(seconds).padStart(2, '0') + '.' +
+        String(hundredths).padStart(2, '0');
+
+      timerEl.textContent = formatted;
+
+      const currentLimit = appConfig.limits[currentRound];
+      const pillValEl = document.getElementById('pill-limit-val');
+      if (pillValEl) pillValEl.textContent = currentLimit.toFixed(1);
+
+      const pill = document.getElementById('limit-status-pill');
+      const dot = document.getElementById('limit-pulse-dot');
+      const pillText = document.getElementById('limit-pill-text');
+      const overtimeDiff = document.getElementById('overtime-diff');
+      const glowBackdrop = document.getElementById('glow-backdrop');
+
+      // Visual Overtime / In-Time Check
+      if (totalSeconds > currentLimit) {
+        const overBy = (totalSeconds - currentLimit).toFixed(2);
+        timerEl.classList.remove('text-white', 'timer-glow-normal');
+        timerEl.classList.add('text-rose-500', 'timer-glow-warning');
+
+        if (pill) {
+          pill.className = "mb-2 px-3.5 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-rose-500/20 text-rose-300 border border-rose-500/50 flex items-center gap-1.5 animate-pulse";
+        }
+        if (dot) {
+          dot.className = "w-2 h-2 rounded-full bg-rose-400 animate-ping";
+        }
+        if (pillText) {
+          pillText.innerHTML = `⚠️ JEBOL BATAS MAKSIMAL (> ${currentLimit.toFixed(1)} detik)`;
+        }
+
+        if (overtimeDiff) {
+          overtimeDiff.className = "text-xs sm:text-sm font-semibold text-rose-400 h-6 mt-1 flex items-center justify-center transition-all duration-200";
+          overtimeDiff.textContent = `+${overBy} detik melampaui batas maksimal (${currentLimit.toFixed(1)} detik)`;
+        }
+
+        if (glowBackdrop) {
+          glowBackdrop.className = "absolute -top-24 -left-24 w-72 h-72 bg-rose-500/20 rounded-full blur-3xl pointer-events-none transition-all duration-500";
+        }
+      } else {
+        timerEl.classList.remove('text-rose-500', 'timer-glow-warning');
+        timerEl.classList.add('text-white', 'timer-glow-normal');
+
+        const remaining = (currentLimit - totalSeconds).toFixed(1);
+        if (pill) {
+          pill.className = "mb-2 px-3.5 py-1 rounded-full text-xs font-semibold uppercase tracking-wider bg-slate-800 text-slate-300 border border-slate-700 flex items-center gap-1.5";
+        }
+        if (dot) {
+          dot.className = `w-2 h-2 rounded-full ${timerRunning ? 'bg-emerald-400 animate-ping' : 'bg-slate-400'}`;
+        }
+        if (pillText) {
+          pillText.innerHTML = `Batas Maksimal: <span id="pill-limit-val">${currentLimit.toFixed(1)}</span> detik`;
+        }
+
+        if (overtimeDiff) {
+          overtimeDiff.className = "text-xs sm:text-sm font-medium text-slate-400 h-6 mt-1 flex items-center justify-center transition-all duration-200";
+          if (ms === 0) {
+            overtimeDiff.textContent = "Siap merekam • Menghitung maju dari 00:00";
+          } else if (timerRunning) {
+            overtimeDiff.innerHTML = `Waktu aman • <span class="font-mono text-emerald-400 font-semibold mx-1">${remaining} detik</span> tersisa`;
+          } else {
+            overtimeDiff.innerHTML = `Durasi tersimpan • Batas aman (${currentLimit.toFixed(1)} detik)`;
+          }
+        }
+
+        if (glowBackdrop) {
+          glowBackdrop.className = `absolute -top-24 -left-24 w-64 h-64 ${timerRunning ? 'bg-emerald-500/10' : 'bg-indigo-500/10'} rounded-full blur-3xl pointer-events-none transition-all duration-500`;
+        }
+      }
+    }
+
+    /**
+     * Search & Rekap Data Dukung Rendering
+     */
+    function renderSummaryList() {
+      const searchEl = document.getElementById('search-input');
+      const listContainer = document.getElementById('summary-list');
+      const roundLabelEl = document.getElementById('summary-round-label');
+      const countEl = document.getElementById('summary-count');
+
+      if (!listContainer) return;
+
+      const query = searchEl ? searchEl.value.toLowerCase().trim() : '';
+      const limit = appConfig.limits[currentRound];
+      const maxWords = appConfig.wordsCount[currentRound];
+
+      if (roundLabelEl) {
+        roundLabelEl.textContent = `Babak ${currentRound.charAt(0).toUpperCase() + currentRound.slice(1)}`;
+      }
+
+      // Automatically filter participants based strictly on current round qualification
+      const filtered = participants.filter(p => {
+        if (currentRound === 'semifinal' && !p.qualifiedSemifinal) return false;
+        if (currentRound === 'final' && !p.qualifiedFinal) return false;
+
+        const matchQuery = (
+          p.name.toLowerCase().includes(query) ||
+          String(p.no).includes(query) ||
+          `#${p.no}`.includes(query)
+        );
+
+        return matchQuery;
+      });
+
+      if (countEl) {
+        countEl.textContent = filtered.length;
+      }
+
+      if (filtered.length === 0) {
+        let emptyMessage = "Tidak ada data peserta yang cocok.";
+        if (currentRound !== 'penyisihan') {
+          emptyMessage = `Belum ada peserta yang ditandai lolos ke babak ${currentRound}. Buka tombol 'Seleksi Lolos Babak' di atas untuk memilih peserta.`;
+        }
+        listContainer.innerHTML = `
+          <div class="h-48 flex flex-col items-center justify-center text-slate-500 text-xs text-center px-4">
+            <span class="text-3xl mb-2">🔍</span>
+            <p>${emptyMessage}</p>
+          </div>
+        `;
+        return;
+      }
+
+      const activeP = getActiveParticipant();
+      listContainer.innerHTML = '';
+
+      filtered.forEach(p => {
+        const times = (p.times && p.times[currentRound]) ? p.times[currentRound] : [];
+        const avg = calculateAverage(times);
+        const isActive = (p.no === activeP.no);
+
+        // Detect if any recorded word in this round breached the maximum limit
+        let hasOverLimit = false;
+        let overLimitCount = 0;
+        for (let i = 0; i < maxWords; i++) {
+          if (times[i] !== null && times[i] !== undefined && (times[i] / 1000) > limit) {
+            hasOverLimit = true;
+            overLimitCount++;
+          }
+        }
+
+        const card = document.createElement('div');
+        card.onclick = () => {
+          if (p.no !== activeParticipantNo) {
+            selectParticipantDirect(p.no);
+          }
+        };
+
+        const activeBorder = isActive ? 'border-indigo-500 bg-indigo-950/25 ring-1 ring-indigo-500/40' : 'border-slate-800/80 bg-slate-950 hover:border-slate-700';
+
+        // Words pills row with GREEN for safe and RED for over limit
+        let wordsHtml = '';
+        for (let w = 0; w < maxWords; w++) {
+          const t = times[w];
+          if (t !== undefined && t !== null) {
+            const sec = (t / 1000).toFixed(2);
+            const isWordOver = (t / 1000 > limit);
+            if (isWordOver) {
+              const diff = ((t / 1000) - limit).toFixed(1);
+              wordsHtml += `<span class="px-1.5 py-0.5 rounded bg-rose-500/20 text-rose-300 font-mono text-[10px] font-semibold border border-rose-500/30" title="Jebol limit +${diff} detik">K${w+1}: ${sec} detik ⚠️</span>`;
+            } else {
+              wordsHtml += `<span class="px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-400 font-mono text-[10px] font-semibold border border-emerald-500/30" title="Aman dalam batas limit">K${w+1}: ${sec} detik</span>`;
+            }
+          } else {
+            wordsHtml += `<span class="px-1.5 py-0.5 rounded bg-slate-900/60 text-slate-600 font-mono text-[10px] border border-slate-800">K${w+1}: -</span>`;
+          }
+        }
+
+        let overtimeBadge = '';
+        if (hasOverLimit) {
+          overtimeBadge = `<span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-rose-500/20 text-rose-300 border border-rose-500/30">${overLimitCount}x Jebol</span>`;
+        }
+
+        card.className = `p-3 rounded-xl border ${activeBorder} transition cursor-pointer flex flex-col gap-2`;
+        card.innerHTML = `
+          <div class="flex items-center justify-between gap-2">
+            <div class="flex items-center gap-2 min-w-0">
+              <span class="w-6 h-6 rounded-lg bg-slate-800 flex items-center justify-center font-mono font-bold text-xs text-indigo-400 shrink-0">#${p.no}</span>
+              <span class="font-bold text-xs text-white truncate">${p.name}</span>
+            </div>
+            <div class="flex items-center gap-2 shrink-0">
+              ${overtimeBadge}
+              <div class="text-right">
+                <span class="text-[10px] text-slate-400 block leading-none">Rata-Rata</span>
+                <span class="font-mono text-xs font-bold ${avg !== null ? 'text-emerald-400' : 'text-slate-600'}">${avg !== null ? avg.toFixed(2) + ' detik' : '-'}</span>
+              </div>
+            </div>
+          </div>
+          <div class="flex flex-wrap items-center gap-1.5 pt-1 border-t border-slate-900">
+            ${wordsHtml}
+          </div>
+        `;
+
+        listContainer.appendChild(card);
+      });
+    }
+
+    /**
+     * Average Calculation Helper
+     */
+    function calculateAverage(timesArray) {
+      if (!timesArray || !Array.isArray(timesArray)) return null;
+      const valid = timesArray.filter(t => t !== null && t !== undefined);
+      if (valid.length === 0) return null;
+      const sum = valid.reduce((acc, curr) => acc + curr, 0);
+      return (sum / valid.length) / 1000;
+    }
+
+    function calculateTotal(timesArray) {
+      if (!timesArray || !Array.isArray(timesArray)) return null;
+      const valid = timesArray.filter(t => t !== null && t !== undefined);
+      if (valid.length === 0) return null;
+      return valid.reduce((acc, curr) => acc + curr, 0) / 1000;
+    }
+
+    /**
+     * MODAL 1: SETUP BABAK
+     */
+    function openConfigModal() {
+      document.getElementById('cfg-limit-penyisihan').value = appConfig.limits.penyisihan;
+      document.getElementById('cfg-words-penyisihan').value = appConfig.wordsCount.penyisihan;
+
+      document.getElementById('cfg-limit-semifinal').value = appConfig.limits.semifinal;
+      document.getElementById('cfg-words-semifinal').value = appConfig.wordsCount.semifinal;
+
+      document.getElementById('cfg-limit-final').value = appConfig.limits.final;
+      document.getElementById('cfg-words-final').value = appConfig.wordsCount.final;
+
+      document.getElementById('modal-config').classList.remove('hidden');
+    }
+
+    function closeConfigModal() {
+      document.getElementById('modal-config').classList.add('hidden');
+    }
+
+    function saveConfiguration() {
+      const lp = parseFloat(document.getElementById('cfg-limit-penyisihan').value) || 10;
+      const wp = parseInt(document.getElementById('cfg-words-penyisihan').value, 10) || 3;
+
+      const ls = parseFloat(document.getElementById('cfg-limit-semifinal').value) || 10;
+      const ws = parseInt(document.getElementById('cfg-words-semifinal').value, 10) || 3;
+
+      const lf = parseFloat(document.getElementById('cfg-limit-final').value) || 15;
+      const wf = parseInt(document.getElementById('cfg-words-final').value, 10) || 5;
+
+      appConfig.limits.penyisihan = lp;
+      appConfig.wordsCount.penyisihan = wp;
+
+      appConfig.limits.semifinal = ls;
+      appConfig.wordsCount.semifinal = ws;
+
+      appConfig.limits.final = lf;
+      appConfig.wordsCount.final = wf;
+
+      saveConfigToStorage();
+      closeConfigModal();
+
+      renderAppHeader();
+      renderActiveParticipant();
+      renderSummaryList();
+    }
+
+    /**
+     * MODAL 2: SELEKSI LOLOS BABAK (BERJENJANG)
+     */
+    function openQualificationModal() {
+      document.getElementById('qual-search').value = '';
+      updateQualCounts();
+      renderQualificationList();
+      document.getElementById('modal-qualification').classList.remove('hidden');
+    }
+
+    function closeQualificationModal() {
+      document.getElementById('modal-qualification').classList.add('hidden');
+      renderActiveParticipant();
+      renderSummaryList();
+    }
+
+    function updateQualCounts() {
+      const semiCount = participants.filter(p => p.qualifiedSemifinal).length;
+      const finalCount = participants.filter(p => p.qualifiedFinal).length;
+
+      document.getElementById('qual-semi-count').textContent = semiCount;
+      document.getElementById('qual-final-count').textContent = finalCount;
+      document.getElementById('qual-final-pool-count').textContent = `${semiCount} Semifinalis`;
+    }
+
+    function switchQualTab(tab) {
+      qualActiveTab = tab;
+      const btnSemi = document.getElementById('btn-tab-qual-semi');
+      const btnFinal = document.getElementById('btn-tab-qual-final');
+      const noticeFinal = document.getElementById('qual-final-notice');
+
+      if (tab === 'semifinal') {
+        btnSemi.className = "px-3.5 py-1.5 rounded-xl text-xs font-bold bg-indigo-600 text-white transition";
+        btnFinal.className = "px-3.5 py-1.5 rounded-xl text-xs font-bold bg-slate-800 text-slate-400 hover:text-white transition";
+        noticeFinal.classList.add('hidden');
+      } else {
+        btnFinal.className = "px-3.5 py-1.5 rounded-xl text-xs font-bold bg-indigo-600 text-white transition";
+        btnSemi.className = "px-3.5 py-1.5 rounded-xl text-xs font-bold bg-slate-800 text-slate-400 hover:text-white transition";
+        noticeFinal.classList.remove('hidden');
+      }
+
+      renderQualificationList();
+    }
+
+    function renderQualificationList() {
+      const container = document.getElementById('qual-participants-list');
+      const searchVal = document.getElementById('qual-search').value.toLowerCase().trim();
+      container.innerHTML = '';
+
+      updateQualCounts();
+
+      // In Final tab, only participants qualified in Semifinal are shown
+      let candidates = participants;
+      if (qualActiveTab === 'final') {
+        candidates = participants.filter(p => p.qualifiedSemifinal);
+      }
+
+      const filtered = candidates.filter(p => 
+        p.name.toLowerCase().includes(searchVal) ||
+        String(p.no).includes(searchVal)
+      );
+
+      if (filtered.length === 0) {
+        let msg = "Tidak ada peserta ditemukan.";
+        if (qualActiveTab === 'final' && candidates.length === 0) {
+          msg = "Belum ada peserta yang lolos Semifinal. Buka tab 'Lolos Semifinal' terlebih dahulu.";
+        }
+        container.innerHTML = `
+          <div class="h-40 flex items-center justify-center text-slate-500 text-xs text-center px-4">
+            ${msg}
+          </div>
+        `;
+        document.getElementById('qual-status-summary').textContent = `Terpilih: 0 peserta`;
+        return;
+      }
+
+      let selectedCount = 0;
+
+      filtered.forEach(p => {
+        const isChecked = (qualActiveTab === 'semifinal') ? p.qualifiedSemifinal : p.qualifiedFinal;
+        if (isChecked) selectedCount++;
+
+        const item = document.createElement('label');
+        item.className = `flex items-center justify-between p-2.5 rounded-xl border ${isChecked ? 'bg-indigo-950/30 border-indigo-500/40' : 'bg-slate-950 border-slate-800'} hover:border-slate-700 cursor-pointer transition`;
+        
+        item.innerHTML = `
+          <div class="flex items-center gap-3">
+            <input 
+              type="checkbox" 
+              ${isChecked ? 'checked' : ''} 
+              onchange="toggleParticipantQual(${p.no}, this.checked)"
+              class="w-4 h-4 rounded text-indigo-600 bg-slate-900 border-slate-700 focus:ring-0 focus:ring-offset-0"
+            >
+            <span class="font-mono text-xs text-indigo-400 font-bold">#${p.no}</span>
+            <span class="text-xs font-semibold text-slate-200">${p.name}</span>
+          </div>
+          <span class="text-[10px] px-2 py-0.5 rounded font-mono ${isChecked ? 'bg-emerald-500/20 text-emerald-300' : 'text-slate-500'}">
+            ${isChecked ? 'Lolos ✓' : 'Belum'}
+          </span>
+        `;
+        container.appendChild(item);
+      });
+
+      document.getElementById('qual-status-summary').textContent = `Terpilih: ${selectedCount} dari ${candidates.length} peserta`;
+    }
+
+    function toggleParticipantQual(no, isChecked) {
+      const p = participants.find(item => item.no === no);
+      if (!p) return;
+
+      if (qualActiveTab === 'semifinal') {
+        p.qualifiedSemifinal = isChecked;
+        // If unchecking semifinal, revoke final qualification too
+        if (!isChecked) {
+          p.qualifiedFinal = false;
+        }
+      } else {
+        p.qualifiedFinal = isChecked;
+      }
+
+      saveParticipantsToStorage();
+      renderQualificationList();
+    }
+
+    function selectAllQualCurrentTab(status) {
+      if (qualActiveTab === 'semifinal') {
+        participants.forEach(p => {
+          p.qualifiedSemifinal = status;
+          if (!status) p.qualifiedFinal = false;
+        });
+      } else {
+        // Only toggle for those already in Semifinal
+        participants.forEach(p => {
+          if (p.qualifiedSemifinal) {
+            p.qualifiedFinal = status;
+          }
+        });
+      }
+
+      saveParticipantsToStorage();
+      renderQualificationList();
+    }
+
+    /**
+     * MODAL 3: KOMPARATOR WAKTU ANTAR PESERTA
+     */
+    function openComparatorModal() {
+      comparatorRound = currentRound;
+      // Empty selection by default as requested!
+      comparatorSelectedNos = [];
+
+      switchComparatorRound(currentRound);
+      document.getElementById('modal-comparator').classList.remove('hidden');
+    }
+
+    function closeComparatorModal() {
+      document.getElementById('modal-comparator').classList.add('hidden');
+      toggleCompPopover(false);
+    }
+
+    function switchComparatorRound(round) {
+      comparatorRound = round;
+      ['penyisihan', 'semifinal', 'final'].forEach(r => {
+        const btn = document.getElementById(`btn-comp-${r}`);
+        if (r === round) {
+          btn.className = "px-2.5 py-1 rounded-lg text-xs font-bold bg-indigo-600 text-white";
+        } else {
+          btn.className = "px-2.5 py-1 rounded-lg text-xs font-bold text-slate-400 hover:text-white";
+        }
+      });
+
+      // Filter out participants that don't belong to the newly selected round
+      const validRoundNos = getRoundParticipants(comparatorRound).map(p => p.no);
+      comparatorSelectedNos = comparatorSelectedNos.filter(no => validRoundNos.includes(no));
+
+      document.getElementById('comp-limit-text').textContent = `${appConfig.limits[round].toFixed(1)} detik`;
+      renderComparatorView();
+      renderCompPopoverList();
+    }
+
+    function toggleCompPopover(forceState) {
+      const popover = document.getElementById('comp-participants-popover');
+      const isHidden = popover.classList.contains('hidden');
+      const shouldOpen = (forceState !== undefined) ? forceState : isHidden;
+
+      if (shouldOpen) {
+        popover.classList.remove('hidden');
+        renderCompPopoverList();
+      } else {
+        popover.classList.add('hidden');
+      }
+    }
+
+    function renderCompPopoverList() {
+      const listEl = document.getElementById('comp-popover-list');
+      const searchVal = (document.getElementById('comp-popover-search')?.value || '').toLowerCase().trim();
+      const roundParticipants = getRoundParticipants(comparatorRound);
+
+      listEl.innerHTML = '';
+
+      const filtered = roundParticipants.filter(p => 
+        p.name.toLowerCase().includes(searchVal) ||
+        String(p.no).includes(searchVal)
+      );
+
+      if (filtered.length === 0) {
+        listEl.innerHTML = '<div class="text-xs text-slate-500 py-4 text-center">Tidak ada peserta</div>';
+        return;
+      }
+
+      filtered.forEach(p => {
+        const isSelected = comparatorSelectedNos.includes(p.no);
+        const item = document.createElement('label');
+        item.className = `flex items-center gap-2 px-2 py-1.5 rounded-lg text-xs cursor-pointer ${isSelected ? 'bg-indigo-950/40 text-indigo-300' : 'hover:bg-slate-900 text-slate-300'}`;
+        item.innerHTML = `
+          <input 
+            type="checkbox" 
+            ${isSelected ? 'checked' : ''} 
+            onchange="toggleComparatorParticipant(${p.no}, this.checked)"
+            class="rounded text-indigo-600 bg-slate-900 border-slate-700"
+          >
+          <span class="font-mono text-slate-400 text-[11px]">#${p.no}</span>
+          <span class="font-semibold truncate">${p.name}</span>
+        `;
+        listEl.appendChild(item);
+      });
+
+      document.getElementById('comp-selected-count-badge').textContent = comparatorSelectedNos.length;
+    }
+
+    function toggleComparatorParticipant(no, isChecked) {
+      if (isChecked) {
+        if (!comparatorSelectedNos.includes(no)) {
+          comparatorSelectedNos.push(no);
+        }
+      } else {
+        comparatorSelectedNos = comparatorSelectedNos.filter(n => n !== no);
+      }
+      renderComparatorView();
+      renderCompPopoverList();
+    }
+
+    function removeComparatorParticipant(no) {
+      comparatorSelectedNos = comparatorSelectedNos.filter(n => n !== no);
+      renderComparatorView();
+      renderCompPopoverList();
+    }
+
+    function renderComparatorView() {
+      const container = document.getElementById('comparator-table-container');
+      const analysisBox = document.getElementById('comparator-analysis-box');
+      const maxWords = appConfig.wordsCount[comparatorRound];
+      const limitSec = appConfig.limits[comparatorRound];
+
+      document.getElementById('comp-selected-count-badge').textContent = comparatorSelectedNos.length;
+
+      if (comparatorSelectedNos.length === 0) {
+        container.innerHTML = `
+          <div class="h-48 flex flex-col items-center justify-center text-center p-6 border-2 border-dashed border-slate-800 rounded-2xl">
+            <span class="text-4xl mb-2">⚖️</span>
+            <div class="font-bold text-sm text-slate-300">Belum Ada Peserta Dipilih</div>
+            <p class="text-xs text-slate-500 mt-1 max-w-sm">
+              Klik tombol hijau <strong>"+ Pilih Peserta Dibandingkan"</strong> di atas untuk mencentang 2 atau lebih peserta yang ingin diperbandingkan catatannya.
+            </p>
+          </div>
+        `;
+        if (analysisBox) {
+          analysisBox.innerHTML = `
+            <div class="text-slate-500 text-center py-1">
+              Pilih minimal 2 peserta di atas untuk melihat analisis komparasi data dukung waktu.
+            </div>
+          `;
+        }
+        return;
+      }
+
+      // Fetch participants and calculate stats
+      const selectedList = comparatorSelectedNos.map(no => {
+        const p = participants.find(item => item.no === no);
+        const times = (p && p.times && p.times[comparatorRound]) ? p.times[comparatorRound] : [];
+        const avg = calculateAverage(times);
+        const total = calculateTotal(times);
+        
+        let overLimitCount = 0;
+        for (let i = 0; i < maxWords; i++) {
+          if (times[i] !== null && times[i] !== undefined && (times[i] / 1000) > limitSec) {
+            overLimitCount++;
+          }
+        }
+
+        return {
+          no,
+          name: p ? p.name : 'Unknown',
+          times,
+          avg,
+          total,
+          overLimitCount
+        };
+      });
+
+      // Find leading (fastest average)
+      const validItems = selectedList.filter(item => item.avg !== null);
+      const validAverages = validItems.map(item => item.avg);
+      const minAverage = validAverages.length > 0 ? Math.min(...validAverages) : null;
+      const winner = validItems.find(item => item.avg === minAverage);
+
+      // Build Table
+      let tableHtml = `
+        <table class="w-full text-left text-xs border-collapse">
+          <thead>
+            <tr class="border-b border-slate-800 bg-slate-950/60 text-slate-400 font-semibold uppercase text-[10px]">
+              <th class="py-2.5 px-3">Peserta</th>
+      `;
+
+      for (let i = 0; i < maxWords; i++) {
+        tableHtml += `<th class="py-2.5 px-2 text-center font-mono">Kata ${i + 1}</th>`;
+      }
+
+      tableHtml += `
+              <th class="py-2.5 px-3 text-center font-mono">Rata-Rata</th>
+              <th class="py-2.5 px-3 text-center font-mono">Total Waktu</th>
+              <th class="py-2.5 px-2 text-center">Aksi</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-800/80">
+      `;
+
+      selectedList.forEach(item => {
+        const isLeading = (item.avg !== null && item.avg === minAverage && validAverages.length > 1);
+
+        tableHtml += `
+          <tr class="transition ${isLeading ? 'bg-emerald-950/40 border-l-4 border-l-emerald-400 hover:bg-emerald-950/50' : 'hover:bg-slate-950/40'}">
+            <td class="py-3 px-3">
+              <div class="flex items-center gap-2">
+                <span class="w-6 h-6 rounded-lg ${isLeading ? 'bg-emerald-900/60 text-emerald-300' : 'bg-slate-800 text-indigo-400'} font-mono font-bold flex items-center justify-center text-xs">#${item.no}</span>
+                <div>
+                  <div class="font-bold text-white flex items-center gap-1.5">
+                    <span>${item.name}</span>
+                    ${isLeading ? '<span class="text-[10px] px-1.5 py-0.2 rounded bg-emerald-500/20 text-emerald-300 font-bold border border-emerald-500/30">Tercepat ⭐</span>' : ''}
+                  </div>
+                </div>
+              </div>
+            </td>
+        `;
+
+        // Render each word
+        for (let w = 0; w < maxWords; w++) {
+          const t = item.times[w];
+          if (t !== undefined && t !== null) {
+            const sec = (t / 1000).toFixed(2);
+            const isOver = (t / 1000 > limitSec);
+            if (isOver) {
+              const diff = ((t / 1000) - limitSec).toFixed(1);
+              tableHtml += `
+                <td class="py-3 px-2 text-center">
+                  <div class="font-mono font-bold text-rose-400">${sec} detik</div>
+                  <div class="text-[9px] text-rose-500/80 font-mono">+${diff} detik</div>
+                </td>
+              `;
+            } else {
+              tableHtml += `
+                <td class="py-3 px-2 text-center">
+                  <div class="font-mono font-semibold text-emerald-400">${sec} detik</div>
+                  <div class="text-[9px] text-emerald-500/80 font-mono">Aman</div>
+                </td>
+              `;
+            }
+          } else {
+            tableHtml += `
+              <td class="py-3 px-2 text-center text-slate-600 font-mono">-</td>
+            `;
+          }
+        }
+
+        // Average Column
+        tableHtml += `
+          <td class="py-3 px-3 text-center">
+            <span class="font-mono text-sm font-bold ${item.avg !== null ? (isLeading ? 'text-emerald-400' : 'text-slate-200') : 'text-slate-600'}">
+              ${item.avg !== null ? item.avg.toFixed(2) + ' detik' : '-'}
+            </span>
+          </td>
+        `;
+
+        // Total Column
+        tableHtml += `
+          <td class="py-3 px-3 text-center">
+            <span class="font-mono text-xs text-slate-300">
+              ${item.total !== null ? item.total.toFixed(2) + ' detik' : '-'}
+            </span>
+          </td>
+        `;
+
+        // In-Row Delete Action Button
+        tableHtml += `
+          <td class="py-3 px-2 text-center">
+            <button 
+              onclick="removeComparatorParticipant(${item.no})" 
+              class="p-1.5 rounded-lg bg-slate-800 hover:bg-rose-500/20 text-slate-400 hover:text-rose-400 border border-slate-700 hover:border-rose-500/40 transition"
+              title="Hapus baris peserta ini dari perbandingan"
+            >
+              🗑️
+            </button>
+          </td>
+        </tr>`;
+      });
+
+      tableHtml += `
+          </tbody>
+        </table>
+      `;
+
+      container.innerHTML = tableHtml;
+
+      // Render Descriptive Analysis Narrative Box
+      if (analysisBox) {
+        if (selectedList.length >= 2 && winner && validItems.length >= 2) {
+          // Sort remaining items by average ascending
+          const sorted = [...validItems].sort((a, b) => a.avg - b.avg);
+          const leader = sorted[0];
+          const runnerUp = sorted[1];
+          const diff = (runnerUp.avg - leader.avg).toFixed(2);
+
+          let overtimeSummary = '';
+          const hasOvertimeParticipants = selectedList.filter(item => item.overLimitCount > 0);
+          if (hasOvertimeParticipants.length > 0) {
+            overtimeSummary = `
+              <div class="mt-1 text-rose-400 flex items-center gap-1.5">
+                <span>⚠️ Catatan Limit:</span>
+                <span>${hasOvertimeParticipants.map(p => `<strong>#${p.no} ${p.name}</strong> (${p.overLimitCount}x jebol limit)`).join(', ')}.</span>
+              </div>
+            `;
+          } else {
+            overtimeSummary = `
+              <div class="mt-1 text-emerald-400 flex items-center gap-1.5">
+                <span>✅ Catatan Limit:</span>
+                <span>Seluruh kata yang dieja oleh peserta dalam perbandingan ini berada dalam batas aman (&le; ${limitSec}s).</span>
+              </div>
+            `;
+          }
+
+          analysisBox.innerHTML = `
+            <div class="flex items-start gap-2.5">
+              <span class="text-xl shrink-0">📊</span>
+              <div class="flex-1 space-y-1">
+                <div class="font-bold text-white text-xs flex items-center gap-2">
+                  <span>Analisis Data Dukung Waktu:</span>
+                  <span class="px-2 py-0.2 rounded bg-emerald-500/20 text-emerald-300 font-mono text-[11px] border border-emerald-500/30">
+                    #${leader.no} ${leader.name} Tercepat (${leader.avg.toFixed(2)} detik)
+                  </span>
+                </div>
+                <p class="text-slate-300 leading-relaxed text-[11px]">
+                  Berdasarkan perbandingan waktu babak <strong>${comparatorRound.toUpperCase()}</strong>, peserta <strong>#${leader.no} ${leader.name}</strong> unggul lebih cepat <strong>${diff} detik</strong> per kata dibandingkan peserta <strong>#${runnerUp.no} ${runnerUp.name}</strong> (rata-rata ${runnerUp.avg.toFixed(2)} detik).
+                </p>
+                ${overtimeSummary}
+              </div>
+            </div>
+          `;
+        } else if (validItems.length < 2) {
+          analysisBox.innerHTML = `
+            <div class="text-slate-400 text-center py-1">
+              ℹ️ Beberapa peserta terpilih belum memiliki catatan waktu lengkap pada babak ini. Rekam durasi terlebih dahulu untuk melihat analisis keunggulan.
+            </div>
+          `;
+        } else {
+          analysisBox.innerHTML = `
+            <div class="text-slate-400 text-center py-1">
+              Tambahkan minimal 2 peserta untuk menghasilkan kalkulasi selisih waktu otomatis.
+            </div>
+          `;
+        }
+      }
+    }
+
+    /**
+     * MODAL 4: MANAGE & RESTORE PARTICIPANTS
+     */
+    function openParticipantsModal() {
+      const textarea = document.getElementById('bulk-participants-input');
+      const lines = participants.map(p => `${p.no}, ${p.name}`);
+      textarea.value = lines.join('\n');
+      document.getElementById('modal-participants').classList.remove('hidden');
+    }
+
+    function closeParticipantsModal() {
+      document.getElementById('modal-participants').classList.add('hidden');
+    }
+
+    function applyBulkParticipants() {
+      const raw = document.getElementById('bulk-participants-input').value.trim();
+      if (!raw) return;
+
+      const lines = raw.split('\n');
+      const newList = [];
+
+      lines.forEach((line, idx) => {
+        const parts = line.split(',');
+        if (parts.length >= 2) {
+          const no = parseInt(parts[0].trim(), 10) || (idx + 1);
+          const name = parts.slice(1).join(',').trim();
+          newList.push({ no, name });
+        } else if (line.trim().length > 0) {
+          newList.push({ no: idx + 1, name: line.trim() });
+        }
+      });
+
+      if (newList.length === 0) return;
+
+      // Preserve existing recorded times if participant number matches
+      participants = newList.map(item => {
+        const existing = participants.find(old => old.no === item.no);
+        return {
+          no: item.no,
+          name: item.name,
+          qualifiedSemifinal: existing ? existing.qualifiedSemifinal : false,
+          qualifiedFinal: existing ? existing.qualifiedFinal : false,
+          times: existing ? existing.times : { penyisihan: [], semifinal: [], final: [] }
+        };
+      });
+
+      saveParticipantsToStorage();
+      closeParticipantsModal();
+
+      renderActiveParticipant();
+      renderSummaryList();
+    }
+
+    function restoreDefault40() {
+      participants = DEFAULT_40_PARTICIPANTS.map(p => {
+        const existing = participants.find(old => old.no === p.no);
+        return {
+          no: p.no,
+          name: p.name,
+          qualifiedSemifinal: existing ? existing.qualifiedSemifinal : false,
+          qualifiedFinal: existing ? existing.qualifiedFinal : false,
+          times: existing ? existing.times : { penyisihan: [], semifinal: [], final: [] }
+        };
+      });
+
+      saveParticipantsToStorage();
+      openParticipantsModal(); // Refresh textarea
+      renderActiveParticipant();
+      renderSummaryList();
+    }
+
+    function clearAllRecordedTimes() {
+      participants.forEach(p => {
+        p.times = { penyisihan: [], semifinal: [], final: [] };
+      });
+      saveParticipantsToStorage();
+      closeParticipantsModal();
+      timerElapsedMs = 0;
+      updateTimerDisplay(0);
+      renderActiveParticipant();
+      renderSummaryList();
+    }
+
+    /**
+     * Export to CSV Helper
+     */
+    function exportToCSV() {
+      let csv = "Nomor Urut,Nama Peserta,Lolos Semifinal,Lolos Final,Babak,Kata Ke,Durasi (Detik),Batas Limit (Detik),Status Limit,Rata-Rata Babak (Detik)\n";
+
+      ['penyisihan', 'semifinal', 'final'].forEach(round => {
+        const roundLimit = appConfig.limits[round];
+        const maxWords = appConfig.wordsCount[round];
+
+        participants.forEach(p => {
+          const times = (p.times && p.times[round]) ? p.times[round] : [];
+          const avg = calculateAverage(times);
+          const avgStr = avg !== null ? avg.toFixed(2) : "";
+
+          for (let w = 0; w < maxWords; w++) {
+            const t = times[w];
+            const secStr = (t !== undefined && t !== null) ? (t / 1000).toFixed(2) : "";
+            const isOver = (t !== undefined && t !== null && (t / 1000) > roundLimit);
+            const status = (secStr === "") ? "Belum Diisi" : (isOver ? "JEBOL LIMIT" : "Aman");
+
+            csv += `"${p.no}","${p.name}","${p.qualifiedSemifinal ? 'Ya' : 'Tidak'}","${p.qualifiedFinal ? 'Ya' : 'Tidak'}","${round}","Kata ${w+1}","${secStr}","${roundLimit}","${status}","${avgStr}"\n`;
+          }
+        });
+      });
+
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.setAttribute("href", url);
+      link.setAttribute("download", `Rekap_Waktu_Lomba_Eja_Kata_${new Date().toISOString().slice(0,10)}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+
+    /**
+     * Keyboard Shortcuts Listener
+     */
+    function setupKeyboardShortcuts() {
+      window.addEventListener('keydown', (e) => {
+        // Prevent shortcuts when user is typing in inputs or textareas
+        const activeTag = document.activeElement ? document.activeElement.tagName.toLowerCase() : '';
+        if (activeTag === 'input' || activeTag === 'textarea' || activeTag === 'select') {
+          return;
+        }
+
+        // Spacebar: Start / Stop
+        if (e.code === 'Space') {
+          e.preventDefault();
+          toggleTimer();
+        }
+
+        // Key 'R': Reset / Retake
+        if (e.key === 'r' || e.key === 'R') {
+          e.preventDefault();
+          resetActiveWordTime();
+        }
+
+        // Arrow Left: Previous Participant
+        if (e.key === 'ArrowLeft') {
+          e.preventDefault();
+          navigateParticipant(-1);
+        }
+
+        // Arrow Right: Next Participant
+        if (e.key === 'ArrowRight') {
+          e.preventDefault();
+          navigateParticipant(1);
+        }
+      });
+    }
+  </script>
+</body>
+</html>
