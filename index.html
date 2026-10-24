@@ -4,6 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Time Tracker - Lomba Eja Kata Bahasa Indonesia</title>
+  <link rel="icon" type="image/png" href="Nomor_Lomba__1_-removebg-preview.png">
+  <link rel="apple-touch-icon" href="Nomor_Lomba__1_-removebg-preview.png">
   <!-- Local Offline-First Libraries with CDN Fallback -->
   <script src="tailwindcss.js"></script>
   <script>
@@ -311,6 +313,17 @@
           
           <!-- Background Glow Effect -->
           <div id="glow-backdrop" class="absolute -top-24 -left-24 w-64 h-64 bg-indigo-500/10 rounded-md blur-3xl pointer-events-none transition-all duration-500"></div>
+
+          <!-- Spawn Stage Display Icon Button (Pojok Kanan Atas Box Timer) -->
+          <button 
+            onclick="openStageDisplay()" 
+            class="absolute top-3.5 right-3.5 z-20 p-2 rounded-md bg-neutral-900/90 hover:bg-neutral-800 text-neutral-400 hover:text-indigo-400 border border-neutral-800 hover:border-indigo-500/50 transition shadow-sm group"
+            title="Buka layar panggung audiens (proyektor/TV)"
+          >
+            <svg class="w-4 h-4 transition-transform group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
+            </svg>
+          </button>
 
           <!-- Limit Badge Pill (Info Statis Batas Waktu) -->
           <div id="limit-status-pill" class="mb-2 px-3 py-1 rounded text-xs font-medium bg-neutral-900 text-neutral-300 border border-neutral-800 flex items-center gap-1.5">
@@ -768,15 +781,74 @@
     let comparatorSelectedNos = [];
 
     /**
+     * BroadcastChannel Stage Sync Engine (Dual Screen)
+     */
+    const SYNC_CHANNEL_NAME = 'eja_kata_stage_sync';
+    const STORAGE_BACKUP_KEY = 'eja_kata_stage_state_v1';
+    let stageSyncChannel = null;
+
+    function initStageSync() {
+      try {
+        stageSyncChannel = new BroadcastChannel(SYNC_CHANNEL_NAME);
+        stageSyncChannel.onmessage = function(e) {
+          if (e.data && e.data.type === 'REQ_STAGE_STATE') {
+            broadcastStageState();
+          }
+        };
+      } catch (err) {
+        console.warn('BroadcastChannel tidak aktif:', err);
+      }
+    }
+
+    function broadcastStageState() {
+      const p = getActiveParticipant();
+      const roundTimes = (p && p.times && p.times[currentRound]) ? p.times[currentRound] : [];
+
+      const payload = {
+        type: 'STATE_UPDATE',
+        timerRunning,
+        timerElapsedMs,
+        timerStartTime,
+        currentRound,
+        limitSec: appConfig.limits[currentRound],
+        wordsCount: appConfig.wordsCount[currentRound],
+        activeParticipant: p ? { no: p.no, name: p.name } : null,
+        activeWordIndex,
+        roundTimes,
+        timestamp: Date.now()
+      };
+
+      if (stageSyncChannel) {
+        try {
+          stageSyncChannel.postMessage(payload);
+        } catch (e) {}
+      }
+
+      try {
+        localStorage.setItem(STORAGE_BACKUP_KEY, JSON.stringify(payload));
+      } catch (e) {}
+    }
+
+    function openStageDisplay() {
+      const win = window.open('display.html', 'EjaKataStageDisplay', 'width=1280,height=720,menubar=no,toolbar=no,location=no');
+      if (win) {
+        win.focus();
+      }
+      setTimeout(broadcastStageState, 200);
+    }
+
+    /**
      * Initialize Application on Window Load
      */
     window.onload = function() {
+      initStageSync();
       loadConfig();
       loadParticipants();
       renderAppHeader();
       renderActiveParticipant();
       renderSummaryList();
       setupKeyboardShortcuts();
+      broadcastStageState();
     };
 
     /**
@@ -886,6 +958,7 @@
       renderAppHeader();
       renderActiveParticipant();
       renderSummaryList();
+      broadcastStageState();
     }
 
     function renderAppHeader() {
@@ -910,6 +983,7 @@
 
       renderActiveParticipant();
       renderSummaryList();
+      broadcastStageState();
     }
 
     function navigateParticipant(direction) {
@@ -930,6 +1004,7 @@
 
       renderActiveParticipant();
       renderSummaryList();
+      broadcastStageState();
     }
 
     /**
@@ -1012,6 +1087,7 @@
       if (timerRunning) stopTimer(false);
       activeWordIndex = index;
       renderActiveParticipant();
+      broadcastStageState();
     }
 
     /**
@@ -1038,6 +1114,8 @@
       const text = document.getElementById('btn-toggle-text');
       if (text) text.textContent = "Stop & simpan";
 
+      broadcastStageState();
+
       timerInterval = setInterval(() => {
         timerElapsedMs = Date.now() - timerStartTime;
         updateTimerDisplay(timerElapsedMs);
@@ -1062,6 +1140,7 @@
         saveRecordedTime(timerElapsedMs);
       } else {
         updateTimerDisplay(timerElapsedMs);
+        broadcastStageState();
       }
     }
 
@@ -1081,6 +1160,7 @@
 
       renderActiveParticipant();
       renderSummaryList();
+      broadcastStageState();
     }
 
     function resetActiveWordTime() {
@@ -1096,6 +1176,7 @@
       updateTimerDisplay(0);
       renderActiveParticipant();
       renderSummaryList();
+      broadcastStageState();
     }
 
     /**
@@ -1359,6 +1440,7 @@
       renderAppHeader();
       renderActiveParticipant();
       renderSummaryList();
+      broadcastStageState();
     }
 
     /**
@@ -1375,6 +1457,7 @@
       document.getElementById('modal-qualification').classList.add('hidden');
       renderActiveParticipant();
       renderSummaryList();
+      broadcastStageState();
     }
 
     function updateQualCounts() {

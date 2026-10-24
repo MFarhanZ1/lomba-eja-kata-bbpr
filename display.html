@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="id" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Layar Panggung - Lomba Eja Kata</title>
+  <link rel="icon" type="image/png" href="Nomor_Lomba__1_-removebg-preview.png">
+  <link rel="apple-touch-icon" href="Nomor_Lomba__1_-removebg-preview.png">
+  <!-- Local Offline-First Tailwind with CDN Fallback -->
+  <script src="tailwindcss.js"></script>
+  <script>
+    if (typeof tailwind === 'undefined') {
+      document.write('<script src="https://cdn.tailwindcss.com"><\/script>');
+    }
+  </script>
+  <!-- Google Fonts: Inter & JetBrains Mono (Fallback to system fonts offline) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', '-apple-system', 'BlinkMacSystemFont', '"Segoe UI"', 'Roboto', 'sans-serif'],
+            mono: ['"JetBrains Mono"', '"Cascadia Code"', 'Consolas', '"Courier New"', 'monospace'],
+          },
+          colors: {
+            neutral: {
+              750: '#2b2b2b',
+              850: '#141414',
+              925: '#0a0a0a',
+              950: '#050505',
+            },
+            slate: {
+              700: '#262626',
+              800: '#141414',
+              850: '#0e0e0e',
+              900: '#070707',
+              950: '#000000',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    /* Smooth Grid Boxes Background Pattern */
+    .bg-grid-boxes {
+      background-size: 36px 36px;
+      background-image: 
+        linear-gradient(to right, rgba(255, 255, 255, 0.065) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(255, 255, 255, 0.065) 1px, transparent 1px);
+    }
+    .timer-glow-normal {
+      text-shadow: 0 0 50px rgba(99, 102, 241, 0.35);
+    }
+    .timer-glow-warning {
+      text-shadow: 0 0 60px rgba(244, 63, 94, 0.8);
+    }
+  </style>
+</head>
+<body class="bg-black text-neutral-100 min-h-screen font-sans flex flex-col selection:bg-indigo-500 selection:text-white relative select-none overflow-x-hidden">
+
+  <!-- Smooth Background Grid Boxes (Visible Tech Grid) -->
+  <div class="fixed inset-0 pointer-events-none z-0 bg-grid-boxes"></div>
+
+  <!-- Ambient Top Glow for Stage Atmosphere -->
+  <div id="stage-ambient-glow" class="fixed top-0 left-1/2 -translate-x-1/2 w-[1200px] h-[550px] bg-indigo-500/[0.06] blur-[140px] pointer-events-none z-0 transition-colors duration-500"></div>
+
+  <!-- Top Stage Header -->
+  <header class="relative z-10 border-b border-neutral-850 bg-black/85 backdrop-blur-md px-6 lg:px-12 py-3 flex items-center justify-between gap-4">
+    <div class="flex items-center gap-3.5">
+      <img 
+        src="Nomor_Lomba__1_-removebg-preview.png" 
+        alt="Logo Lomba Eja Kata 2026" 
+        class="h-10 sm:h-12 w-auto object-contain drop-shadow"
+        onerror="this.onerror=null; this.parentElement.innerHTML='<div class=\'w-10 h-10 rounded bg-neutral-900 border border-neutral-800 flex items-center justify-center text-white font-bold text-xs\'>EJA</div>';"
+      />
+      <div>
+        <h1 class="text-sm sm:text-base font-bold text-white tracking-tight leading-tight">Lomba Eja Kata Bahasa Indonesia</h1>
+        <p class="text-xs text-neutral-400">Balai Bahasa Riau | Layar panggung audiens</p>
+      </div>
+    </div>
+
+    <!-- Right status pill & fullscreen toggle -->
+    <div class="flex items-center gap-3">
+      <div class="px-3 py-1 rounded bg-neutral-900 border border-neutral-800 text-xs font-medium text-neutral-300 flex items-center gap-2">
+        <span class="text-neutral-500">Babak:</span>
+        <span class="text-indigo-400 font-semibold" id="stage-round-label">Babak penyisihan</span>
+        <span class="text-neutral-700">|</span>
+        <span class="text-neutral-500">Limit:</span>
+        <span class="text-amber-400 font-mono font-semibold" id="stage-limit-label">10.0 detik</span>
+      </div>
+
+      <button 
+        onclick="toggleFullscreen()" 
+        class="px-3 py-1.5 rounded-md text-xs font-semibold bg-neutral-900 hover:bg-neutral-800 text-neutral-300 border border-neutral-800 transition flex items-center gap-1.5"
+        title="Layar penuh (Fullscreen F11)"
+      >
+        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-5h-4m4 0v4m0-4l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"/></svg>
+        <span class="hidden sm:inline" id="btn-fullscreen-text">Layar penuh</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- Main Stage Arena -->
+  <main class="relative z-10 flex-1 flex flex-col justify-between items-center px-4 sm:px-8 py-6 max-w-6xl mx-auto w-full gap-6">
+
+    <!-- Active Participant Showcase Bar -->
+    <div class="w-full bg-[#070707]/90 backdrop-blur-sm border border-neutral-850 rounded-md p-4 sm:p-5 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-xl">
+      <div class="flex items-center gap-4 text-center sm:text-left">
+        <div class="w-14 h-14 sm:w-16 sm:h-16 rounded-md bg-neutral-900 border border-neutral-800 flex items-center justify-center font-mono font-bold text-2xl sm:text-3xl text-indigo-400 shadow-inner shrink-0" id="stage-p-no">
+          #1
+        </div>
+        <div>
+          <span class="text-xs text-neutral-400 block font-medium">Peserta sedang tampil:</span>
+          <h2 class="text-2xl sm:text-3xl md:text-4xl font-bold text-white tracking-tight leading-tight" id="stage-p-name">
+            Jihan
+          </h2>
+        </div>
+      </div>
+
+      <!-- Current Word Slot Highlight -->
+      <div class="flex items-center gap-3">
+        <div class="px-4 py-2 rounded-md bg-neutral-900 border border-neutral-800 text-center">
+          <span class="text-[11px] text-neutral-400 block font-medium">Posisi kata:</span>
+          <span class="text-base sm:text-lg font-bold font-mono text-emerald-400" id="stage-word-status">Kata 1 dari 3</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Giant Central Stage Stopwatch -->
+    <div id="stage-timer-card" class="w-full flex-1 bg-[#070707]/90 backdrop-blur-sm border border-neutral-850 rounded-md p-8 sm:p-12 flex flex-col items-center justify-center text-center shadow-2xl relative transition-all duration-300">
+      
+      <!-- Stage Timer Digits -->
+      <div id="stage-timer-display" class="font-mono text-7xl sm:text-8xl md:text-9xl lg:text-[11rem] font-bold tracking-tight text-white py-2 timer-glow-normal leading-none transition-colors duration-200">
+        00:00.00
+      </div>
+
+      <!-- Status Subtext & Overtime Callout -->
+      <div id="stage-status-diff" class="text-base sm:text-xl font-medium text-neutral-400 mt-4 h-8 flex items-center justify-center transition-all duration-200">
+        Siap merekam - Menghitung maju dari 00:00
+      </div>
+    </div>
+
+    <!-- Bottom Word Slots Summary Bar -->
+    <div class="w-full bg-[#070707]/90 backdrop-blur-sm border border-neutral-850 rounded-md p-4 shadow-sm flex flex-col gap-2 shrink-0">
+      <div class="flex items-center justify-between text-xs text-neutral-400 font-medium px-1">
+        <span>Catatan kata peserta babak ini</span>
+        <span class="text-neutral-500 font-mono" id="stage-avg-text">Rata-rata: 0.00 detik</span>
+      </div>
+      <div id="stage-word-slots" class="grid grid-cols-3 sm:grid-cols-5 gap-3">
+        <!-- Rendered by sync JS -->
+      </div>
+    </div>
+
+  </main>
+
+  <script>
+    /**
+     * BroadcastChannel Sync Engine
+     */
+    const SYNC_CHANNEL_NAME = 'eja_kata_stage_sync';
+    const STORAGE_BACKUP_KEY = 'eja_kata_stage_state_v1';
+    let syncChannel = null;
+
+    // Runtime state on stage screen
+    let stageState = {
+      timerRunning: false,
+      timerElapsedMs: 0,
+      timerStartTime: 0,
+      currentRound: 'penyisihan',
+      limitSec: 10,
+      wordsCount: 3,
+      activeParticipant: { no: 1, name: 'Jihan' },
+      activeWordIndex: 0,
+      roundTimes: []
+    };
+
+    let stageTimerInterval = null;
+
+    window.onload = function() {
+      initSyncChannel();
+      requestStateFromOperator();
+      setupStorageFallback();
+    };
+
+    function initSyncChannel() {
+      try {
+        syncChannel = new BroadcastChannel(SYNC_CHANNEL_NAME);
+        syncChannel.onmessage = function(e) {
+          if (e.data && e.data.type === 'STATE_UPDATE') {
+            applyIncomingState(e.data);
+          }
+        };
+      } catch (err) {
+        console.warn('BroadcastChannel tidak didukung di browser ini, menggunakan storage fallback:', err);
+      }
+    }
+
+    function setupStorageFallback() {
+      window.addEventListener('storage', function(e) {
+        if (e.key === STORAGE_BACKUP_KEY && e.newValue) {
+          try {
+            const data = JSON.parse(e.newValue);
+            if (data && data.type === 'STATE_UPDATE') {
+              applyIncomingState(data);
+            }
+          } catch (err) {
+            console.error(err);
+          }
+        }
+      });
+
+      // Try initial read from storage
+      try {
+        const saved = localStorage.getItem(STORAGE_BACKUP_KEY);
+        if (saved) {
+          const data = JSON.parse(saved);
+          applyIncomingState(data);
+        }
+      } catch (e) {}
+    }
+
+    function requestStateFromOperator() {
+      if (syncChannel) {
+        syncChannel.postMessage({ type: 'REQ_STAGE_STATE' });
+      }
+    }
+
+    function applyIncomingState(data) {
+      stageState = {
+        timerRunning: data.timerRunning,
+        timerElapsedMs: data.timerElapsedMs || 0,
+        timerStartTime: data.timerStartTime || 0,
+        currentRound: data.currentRound || 'penyisihan',
+        limitSec: data.limitSec || 10,
+        wordsCount: data.wordsCount || 3,
+        activeParticipant: data.activeParticipant || { no: 1, name: 'Peserta' },
+        activeWordIndex: data.activeWordIndex || 0,
+        roundTimes: data.roundTimes || []
+      };
+
+      renderStageHeader();
+      renderStageParticipant();
+      renderStageWordSlots();
+
+      if (stageState.timerRunning) {
+        startLocalStageTicker();
+      } else {
+        stopLocalStageTicker();
+        updateStageDisplay(stageState.timerElapsedMs);
+      }
+    }
+
+    function startLocalStageTicker() {
+      if (stageTimerInterval) clearInterval(stageTimerInterval);
+      stageTimerInterval = setInterval(() => {
+        stageState.timerElapsedMs = Date.now() - stageState.timerStartTime;
+        updateStageDisplay(stageState.timerElapsedMs);
+      }, 10);
+    }
+
+    function stopLocalStageTicker() {
+      if (stageTimerInterval) {
+        clearInterval(stageTimerInterval);
+        stageTimerInterval = null;
+      }
+    }
+
+    function renderStageHeader() {
+      const roundName = stageState.currentRound.charAt(0).toUpperCase() + stageState.currentRound.slice(1);
+      document.getElementById('stage-round-label').textContent = `Babak ${roundName}`;
+      document.getElementById('stage-limit-label').textContent = `${stageState.limitSec.toFixed(1)} detik`;
+    }
+
+    function renderStageParticipant() {
+      const p = stageState.activeParticipant;
+      document.getElementById('stage-p-no').textContent = p ? `#${p.no}` : '-';
+      document.getElementById('stage-p-name').textContent = p ? p.name : '(Menunggu peserta)';
+
+      const wordNum = stageState.activeWordIndex + 1;
+      document.getElementById('stage-word-status').textContent = `Kata ${wordNum} dari ${stageState.wordsCount}`;
+    }
+
+    function updateStageDisplay(ms) {
+      const displayEl = document.getElementById('stage-timer-display');
+      const totalSeconds = ms / 1000;
+
+      const minutes = Math.floor(totalSeconds / 60);
+      const seconds = Math.floor(totalSeconds % 60);
+      const hundredths = Math.floor((ms % 1000) / 10);
+
+      displayEl.textContent = 
+        String(minutes).padStart(2, '0') + ':' +
+        String(seconds).padStart(2, '0') + '.' +
+        String(hundredths).padStart(2, '0');
+
+      const limit = stageState.limitSec;
+      const statusEl = document.getElementById('stage-status-diff');
+      const timerCard = document.getElementById('stage-timer-card');
+      const ambientGlow = document.getElementById('stage-ambient-glow');
+
+      if (totalSeconds > limit) {
+        const overBy = (totalSeconds - limit).toFixed(2);
+        displayEl.className = "font-mono text-7xl sm:text-8xl md:text-9xl lg:text-[11rem] font-bold tracking-tight text-rose-500 py-2 timer-glow-warning leading-none transition-colors duration-200";
+        
+        statusEl.className = "text-base sm:text-xl font-semibold text-rose-400 mt-4 h-8 flex items-center justify-center transition-all duration-200";
+        statusEl.textContent = `Jebol batas maksimal (+${overBy} detik)`;
+
+        if (timerCard) {
+          timerCard.className = "w-full flex-1 bg-rose-950/20 backdrop-blur-sm border border-rose-500/40 rounded-md p-8 sm:p-12 flex flex-col items-center justify-center text-center shadow-2xl relative transition-all duration-300";
+        }
+        if (ambientGlow) {
+          ambientGlow.className = "fixed top-0 left-1/2 -translate-x-1/2 w-[1200px] h-[550px] bg-rose-500/[0.12] blur-[140px] pointer-events-none z-0 transition-colors duration-500";
+        }
+      } else {
+        displayEl.className = "font-mono text-7xl sm:text-8xl md:text-9xl lg:text-[11rem] font-bold tracking-tight text-white py-2 timer-glow-normal leading-none transition-colors duration-200";
+        
+        statusEl.className = "text-base sm:text-xl font-medium text-neutral-400 mt-4 h-8 flex items-center justify-center transition-all duration-200";
+        if (ms === 0) {
+          statusEl.textContent = "Siap merekam - Menghitung maju dari 00:00";
+        } else if (stageState.timerRunning) {
+          const remaining = (limit - totalSeconds).toFixed(1);
+          statusEl.innerHTML = `Waktu aman - <span class="font-mono text-emerald-400 font-semibold mx-1">${remaining} detik</span> tersisa`;
+        } else {
+          statusEl.innerHTML = `Durasi tersimpan - Batas aman (${limit.toFixed(1)} detik)`;
+        }
+
+        if (timerCard) {
+          timerCard.className = "w-full flex-1 bg-[#070707]/90 backdrop-blur-sm border border-neutral-850 rounded-md p-8 sm:p-12 flex flex-col items-center justify-center text-center shadow-2xl relative transition-all duration-300";
+        }
+        if (ambientGlow) {
+          ambientGlow.className = `fixed top-0 left-1/2 -translate-x-1/2 w-[1200px] h-[550px] ${stageState.timerRunning ? 'bg-emerald-500/[0.08]' : 'bg-indigo-500/[0.06]'} blur-[140px] pointer-events-none z-0 transition-colors duration-500`;
+        }
+      }
+    }
+
+    function renderStageWordSlots() {
+      const container = document.getElementById('stage-word-slots');
+      if (!container) return;
+      container.innerHTML = '';
+
+      const count = stageState.wordsCount;
+      const times = stageState.roundTimes || [];
+      const limit = stageState.limitSec;
+
+      let validSum = 0;
+      let validCount = 0;
+
+      for (let i = 0; i < count; i++) {
+        const t = times[i];
+        const isCurrent = (i === stageState.activeWordIndex);
+        const hasVal = (t !== undefined && t !== null);
+
+        let borderClass = isCurrent ? 'border-indigo-500 ring-1 ring-indigo-500/30' : 'border-neutral-850';
+        let bgClass = isCurrent ? 'bg-indigo-950/40' : 'bg-[#070707]';
+
+        let badgeHtml = '';
+        if (hasVal) {
+          validSum += t;
+          validCount++;
+          const sec = (t / 1000).toFixed(2);
+          if (t / 1000 > limit) {
+            badgeHtml = `<span class="text-rose-400 font-mono font-semibold text-sm sm:text-base">${sec} detik</span>`;
+          } else {
+            badgeHtml = `<span class="text-emerald-400 font-mono font-semibold text-sm sm:text-base">${sec} detik</span>`;
+          }
+        } else {
+          badgeHtml = `<span class="text-neutral-600 font-mono text-sm sm:text-base">-</span>`;
+        }
+
+        const slot = document.createElement('div');
+        slot.className = `p-3 rounded-md border ${borderClass} ${bgClass} flex flex-col items-center justify-center text-center`;
+        slot.innerHTML = `
+          <span class="text-[11px] font-medium ${isCurrent ? 'text-indigo-300' : 'text-neutral-400'}">Kata ${i + 1}</span>
+          ${badgeHtml}
+        `;
+        container.appendChild(slot);
+      }
+
+      const avg = validCount > 0 ? (validSum / validCount / 1000).toFixed(2) : '0.00';
+      document.getElementById('stage-avg-text').textContent = `Rata-rata: ${avg} detik`;
+    }
+
+    /**
+     * Fullscreen Toggle
+     */
+    function toggleFullscreen() {
+      if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen().catch(err => {
+          console.error(`Gagal masuk fullscreen: ${err.message}`);
+        });
+        document.getElementById('btn-fullscreen-text').textContent = "Keluar fullscreen";
+      } else {
+        if (document.exitFullscreen) {
+          document.exitFullscreen();
+          document.getElementById('btn-fullscreen-text').textContent = "Layar penuh";
+        }
+      }
+    }
+  </script>
+</body>
+</html>
