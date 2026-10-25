@@ -1152,12 +1152,6 @@
       p.times[currentRound][activeWordIndex] = ms;
       saveParticipantsToStorage();
 
-      const currentWordsCount = appConfig.wordsCount[currentRound];
-      if (activeWordIndex < currentWordsCount - 1) {
-        activeWordIndex++;
-        timerElapsedMs = 0;
-      }
-
       renderActiveParticipant();
       renderSummaryList();
       broadcastStageState();
