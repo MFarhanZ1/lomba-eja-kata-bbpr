@@ -72,7 +72,8 @@
     #modal-participants.hidden,
     #export-dropdown-menu.hidden,
     #comp-participants-popover.hidden,
-    #qual-final-notice.hidden {
+    #qual-final-notice.hidden,
+    #onescreen-stage-view.hidden {
       display: none;
     }
     /* Custom Scrollbars - True Pitch Black, sharp minimal border */
@@ -314,16 +315,29 @@
           <!-- Background Glow Effect -->
           <div id="glow-backdrop" class="absolute -top-24 -left-24 w-64 h-64 bg-indigo-500/10 rounded-md blur-3xl pointer-events-none transition-all duration-500"></div>
 
-          <!-- Spawn Stage Display Icon Button (Pojok Kanan Atas Box Timer) -->
-          <button 
-            onclick="openStageDisplay()" 
-            class="absolute top-3.5 right-3.5 z-20 p-2 rounded-md bg-neutral-900/90 hover:bg-neutral-800 text-neutral-400 hover:text-indigo-400 border border-neutral-800 hover:border-indigo-500/50 transition shadow-sm group"
-            title="Buka layar panggung audiens (proyektor/TV)"
-          >
-            <svg class="w-4 h-4 transition-transform group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
-            </svg>
-          </button>
+          <!-- Stage Display Action Buttons (Pojok Kanan Atas Box Timer) -->
+          <div class="absolute top-3.5 right-3.5 z-20 flex items-center gap-1.5">
+            <!-- Fullscreen One-Screen Interactive Stage Button -->
+            <button 
+              onclick="toggleOneScreenStage()" 
+              class="p-2 rounded-md bg-neutral-900/90 hover:bg-neutral-800 text-neutral-400 hover:text-indigo-400 border border-neutral-800 hover:border-indigo-500/50 transition shadow-sm group"
+              title="Layar penuh panggung satu layar (tampilan proyektor interaktif dengan tombol kontrol)"
+            >
+              <svg class="w-4 h-4 transition-transform group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-5h-4m4 0v4m0-4l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"/>
+              </svg>
+            </button>
+            <!-- Spawn External Dual-Screen Window Button -->
+            <button 
+              onclick="openStageDisplay()" 
+              class="p-2 rounded-md bg-neutral-900/90 hover:bg-neutral-800 text-neutral-400 hover:text-indigo-400 border border-neutral-800 hover:border-indigo-500/50 transition shadow-sm group"
+              title="Buka layar panggung di jendela terpisah (untuk proyektor monitor kedua)"
+            >
+              <svg class="w-4 h-4 transition-transform group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
+              </svg>
+            </button>
+          </div>
 
           <!-- Limit Badge Pill (Info Statis Batas Waktu) -->
           <div id="limit-status-pill" class="mb-2 px-3 py-1 rounded text-xs font-medium bg-neutral-900 text-neutral-300 border border-neutral-800 flex items-center gap-1.5">
@@ -368,6 +382,8 @@
             <span>Tekan <kbd class="px-1.5 py-0.5 rounded bg-neutral-900 text-neutral-200 font-mono text-[11px] border border-neutral-700 shadow-sm font-semibold">Spasi</kbd> untuk start/stop</span>
             <span class="text-neutral-700">|</span>
             <span><kbd class="px-1.5 py-0.5 rounded bg-neutral-900 text-neutral-200 font-mono text-[11px] border border-neutral-700 shadow-sm font-semibold">R</kbd> untuk ulangi kata</span>
+            <span class="text-neutral-700">|</span>
+            <span><kbd class="px-1.5 py-0.5 rounded bg-neutral-900 text-neutral-200 font-mono text-[11px] border border-neutral-700 shadow-sm font-semibold">↑ / ↓</kbd> untuk ganti slot kata</span>
           </div>
         </div>
 
@@ -691,6 +707,171 @@
     </div>
   </div>
 
+  <!-- ONE-SCREEN FULLSCREEN STAGE OVERLAY (PANGGUNG SATU LAYAR INTERAKTIF) -->
+  <div id="onescreen-stage-view" class="fixed inset-0 z-50 bg-black text-neutral-100 min-h-screen flex flex-col font-sans select-none overflow-x-hidden hidden">
+    <!-- Smooth Background Grid Boxes (Visible Tech Grid) -->
+    <div class="fixed inset-0 pointer-events-none z-0 bg-grid-boxes"></div>
+
+    <!-- Ambient Top Glow for Stage Atmosphere -->
+    <div id="onescreen-ambient-glow" class="fixed top-0 left-1/2 -translate-x-1/2 w-[1200px] h-[550px] bg-indigo-500/[0.06] blur-[140px] pointer-events-none z-0 transition-colors duration-500"></div>
+
+    <!-- Top Stage Header -->
+    <header class="relative z-10 border-b border-neutral-850 bg-black/85 backdrop-blur-md px-6 lg:px-12 py-3 flex items-center justify-between gap-4 shrink-0">
+      <div class="flex items-center gap-3.5">
+        <img 
+          src="Nomor_Lomba__1_-removebg-preview.png" 
+          alt="Logo Lomba Eja Kata 2026" 
+          class="h-10 sm:h-12 w-auto object-contain drop-shadow"
+          onerror="this.onerror=null; this.parentElement.innerHTML='<div class=\'w-10 h-10 rounded bg-neutral-900 border border-neutral-800 flex items-center justify-center text-white font-bold text-xs\'>EJA</div>';"
+        />
+        <div>
+          <h1 class="text-sm sm:text-base font-bold text-white tracking-tight leading-tight">Lomba Eja Kata Bahasa Indonesia</h1>
+          <p class="text-xs text-neutral-400">Balai Bahasa Riau | Mode panggung interaktif</p>
+        </div>
+      </div>
+
+      <!-- Right status pill & exit fullscreen toggle -->
+      <div class="flex items-center gap-3">
+        <div class="px-3 py-1 rounded bg-neutral-900 border border-neutral-800 text-xs font-medium text-neutral-300 flex items-center gap-2">
+          <span class="text-neutral-500">Babak:</span>
+          <span class="text-indigo-400 font-semibold" id="onescreen-round-label">Babak penyisihan</span>
+          <span class="text-neutral-700">|</span>
+          <span class="text-neutral-500">Limit:</span>
+          <span class="text-amber-400 font-mono font-semibold" id="onescreen-limit-label">10.0 detik</span>
+        </div>
+
+        <button 
+          onclick="exitOneScreenStage()" 
+          class="px-3 py-1.5 rounded-md text-xs font-semibold bg-neutral-900 hover:bg-neutral-800 text-neutral-300 hover:text-white border border-neutral-800 transition flex items-center gap-1.5"
+          title="Keluar dari layar penuh panggung (Shortcut: Esc)"
+        >
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+          <span class="hidden sm:inline">Keluar panggung</span>
+          <kbd class="px-1 py-0.5 rounded bg-neutral-800 text-neutral-400 text-[10px] font-mono">Esc</kbd>
+        </button>
+      </div>
+    </header>
+
+    <!-- Main Stage Arena -->
+    <main class="relative z-10 flex-1 flex flex-col justify-between items-center px-4 sm:px-8 py-5 max-w-6xl mx-auto w-full gap-5 min-h-0 overflow-y-auto">
+
+      <!-- Active Participant Showcase Bar with Integrated Arrow Navigation -->
+      <div class="w-full bg-[#070707]/90 backdrop-blur-sm border border-neutral-850 rounded-md p-4 sm:p-5 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-xl shrink-0">
+        
+        <!-- Left Side: Prev Arrow + [Nomor Urut & Nama Peserta] + Next Arrow -->
+        <div class="flex items-center gap-3 text-center sm:text-left">
+          <!-- Panah Kiri Peserta -->
+          <button 
+            onclick="navigateParticipant(-1)" 
+            class="p-2.5 sm:p-3 rounded-md bg-neutral-900 hover:bg-neutral-800 text-neutral-300 hover:text-white border border-neutral-800 hover:border-neutral-700 transition shadow-sm group shrink-0"
+            title="Peserta sebelumnya (Shortcut: Panah Kiri)"
+          >
+            <svg class="w-5 h-5 transition-transform group-hover:-translate-x-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+            </svg>
+          </button>
+
+          <!-- Nomor Urut Peserta -->
+          <div class="w-14 h-14 sm:w-16 sm:h-16 rounded-md bg-neutral-900 border border-neutral-800 flex items-center justify-center font-mono font-bold text-2xl sm:text-3xl text-indigo-400 shadow-inner shrink-0" id="onescreen-p-no">
+            #1
+          </div>
+
+          <!-- Nama Peserta -->
+          <div class="min-w-0 pr-1">
+            <span class="text-xs text-neutral-400 block font-medium">Peserta sedang tampil:</span>
+            <h2 class="text-2xl sm:text-3xl md:text-4xl font-bold text-white tracking-tight leading-tight truncate" id="onescreen-p-name">
+              Jihan
+            </h2>
+          </div>
+
+          <!-- Panah Kanan Peserta -->
+          <button 
+            onclick="navigateParticipant(1)" 
+            class="p-2.5 sm:p-3 rounded-md bg-neutral-900 hover:bg-neutral-800 text-neutral-300 hover:text-white border border-neutral-800 hover:border-neutral-700 transition shadow-sm group shrink-0"
+            title="Peserta berikutnya (Shortcut: Panah Kanan)"
+          >
+            <svg class="w-5 h-5 transition-transform group-hover:translate-x-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+            </svg>
+          </button>
+        </div>
+
+        <!-- Right Side: Word Position Status Badge -->
+        <div class="flex items-center gap-3">
+          <div class="px-4 py-2 rounded-md bg-neutral-900 border border-neutral-800 text-center">
+            <span class="text-[10px] text-neutral-400 block font-medium">Posisi kata:</span>
+            <span class="text-sm sm:text-base font-bold font-mono text-emerald-400" id="onescreen-word-status">Kata 1 dari 3</span>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Giant Central Stage Stopwatch -->
+      <div id="onescreen-timer-card" class="w-full flex-1 bg-[#070707]/90 backdrop-blur-sm border border-neutral-850 rounded-md p-6 sm:p-10 flex flex-col items-center justify-center text-center shadow-2xl relative transition-all duration-300 min-h-[280px]">
+        
+        <!-- Stage Timer Digits -->
+        <div id="onescreen-timer-display" class="font-mono text-7xl sm:text-8xl md:text-9xl lg:text-[10.5rem] font-bold tracking-tight text-white py-1 timer-glow-normal leading-none transition-colors duration-200 select-none">
+          00:00.00
+        </div>
+
+        <!-- Status Subtext & Overtime Callout -->
+        <div id="onescreen-status-diff" class="text-sm sm:text-xl font-medium text-neutral-400 mt-3 h-7 flex items-center justify-center transition-all duration-200">
+          Siap merekam - Menghitung maju dari 00:00
+        </div>
+
+        <!-- Interactive Operations Control Bar (Clean: Start/Stop & Reset Only) -->
+        <div class="flex items-center gap-3 mt-6 justify-center w-full max-w-md">
+          <!-- Big Start / Stop Button -->
+          <button 
+            id="onescreen-btn-toggle" 
+            onclick="toggleTimer()" 
+            class="flex-1 py-3 px-8 rounded-md font-bold text-sm sm:text-base transition-all duration-150 transform active:scale-95 shadow-lg bg-emerald-600 hover:bg-emerald-500 text-white shadow-emerald-600/30 flex items-center justify-center gap-2"
+          >
+            <span id="onescreen-btn-toggle-icon">▶</span>
+            <span id="onescreen-btn-toggle-text">Mulai</span>
+          </button>
+
+          <!-- Reset / Retake Active Word Button -->
+          <button 
+            id="onescreen-btn-reset" 
+            onclick="resetActiveWordTime()" 
+            class="py-3 px-5 rounded-md font-semibold text-xs sm:text-sm bg-neutral-900 hover:bg-neutral-800 text-neutral-300 hover:text-white border border-neutral-800 flex items-center justify-center gap-1.5 transition"
+            title="Ulangi pencatatan kata ini (Shortcut: R)"
+          >
+            <span>↺</span>
+            <span>Ulangi kata</span>
+          </button>
+        </div>
+
+        <!-- Keyboard Shortcut Hint Pill -->
+        <div class="text-xs text-neutral-400 mt-4 flex items-center justify-center gap-2 flex-wrap select-none">
+          <span><kbd class="px-1.5 py-0.5 rounded bg-neutral-900 text-neutral-200 font-mono text-[11px] border border-neutral-700 shadow-sm font-semibold">Spasi</kbd> Start/Stop</span>
+          <span class="text-neutral-700">|</span>
+          <span><kbd class="px-1.5 py-0.5 rounded bg-neutral-900 text-neutral-200 font-mono text-[11px] border border-neutral-700 shadow-sm font-semibold">R</kbd> Ulang</span>
+          <span class="text-neutral-700">|</span>
+          <span><kbd class="px-1.5 py-0.5 rounded bg-neutral-900 text-neutral-200 font-mono text-[11px] border border-neutral-700 shadow-sm font-semibold">← / →</kbd> Ganti peserta</span>
+          <span class="text-neutral-700">|</span>
+          <span><kbd class="px-1.5 py-0.5 rounded bg-neutral-900 text-neutral-200 font-mono text-[11px] border border-neutral-700 shadow-sm font-semibold">↑ / ↓</kbd> Slot kata (1, 2, 3)</span>
+          <span class="text-neutral-700">|</span>
+          <span><kbd class="px-1.5 py-0.5 rounded bg-neutral-900 text-neutral-200 font-mono text-[11px] border border-neutral-700 shadow-sm font-semibold">Esc</kbd> Keluar</span>
+        </div>
+
+      </div>
+
+      <!-- Bottom Word Slots Summary Bar -->
+      <div class="w-full bg-[#070707]/90 backdrop-blur-sm border border-neutral-850 rounded-md p-4 shadow-sm flex flex-col gap-2 shrink-0">
+        <div class="flex items-center justify-between text-xs text-neutral-400 font-medium px-1">
+          <span>Slot kata peserta babak ini (klik slot untuk langsung merekam kata tersebut)</span>
+          <span class="text-neutral-500 font-mono" id="onescreen-avg-text">Rata-rata: 0.00 detik</span>
+        </div>
+        <div id="onescreen-word-slots" class="grid grid-cols-3 sm:grid-cols-5 gap-3">
+          <!-- Rendered by JS -->
+        </div>
+      </div>
+
+    </main>
+  </div>
+
   <!-- APPLICATION SCRIPT LOGIC -->
   <script>
     /**
@@ -835,6 +1016,67 @@
         win.focus();
       }
       setTimeout(broadcastStageState, 200);
+    }
+
+    /**
+     * One-Screen Interactive Stage Mode Controller
+     */
+    function isOneScreenStageActive() {
+      const el = document.getElementById('onescreen-stage-view');
+      return el && !el.classList.contains('hidden');
+    }
+
+    function openOneScreenStage() {
+      const el = document.getElementById('onescreen-stage-view');
+      if (!el) return;
+      el.classList.remove('hidden');
+      document.body.classList.add('overflow-hidden');
+
+      try {
+        if (!document.fullscreenElement) {
+          if (document.documentElement.requestFullscreen) {
+            document.documentElement.requestFullscreen().catch(() => {});
+          } else if (document.documentElement.webkitRequestFullscreen) {
+            document.documentElement.webkitRequestFullscreen();
+          }
+        }
+      } catch (e) {}
+
+      renderActiveParticipant();
+      updateTimerDisplay(timerElapsedMs);
+    }
+
+    function exitOneScreenStage() {
+      const el = document.getElementById('onescreen-stage-view');
+      if (el) el.classList.add('hidden');
+      document.body.classList.remove('overflow-hidden');
+
+      try {
+        if (document.fullscreenElement) {
+          if (document.exitFullscreen) {
+            document.exitFullscreen().catch(() => {});
+          } else if (document.webkitExitFullscreen) {
+            document.webkitExitFullscreen();
+          }
+        }
+      } catch (e) {}
+    }
+
+    function toggleOneScreenStage() {
+      if (isOneScreenStageActive()) {
+        exitOneScreenStage();
+      } else {
+        openOneScreenStage();
+      }
+    }
+
+    function navigateWordSlot(direction) {
+      if (timerRunning) stopTimer(false);
+      const currentWordsCount = appConfig.wordsCount[currentRound];
+      let newIndex = activeWordIndex + direction;
+      if (newIndex < 0) newIndex = currentWordsCount - 1;
+      if (newIndex >= currentWordsCount) newIndex = 0;
+      selectWordSlot(newIndex);
     }
 
     /**
@@ -1041,7 +1283,7 @@
       }
 
       const completedWords = roundTimes.filter(t => t !== null && t !== undefined).length;
-      document.getElementById('active-progress-display').textContent = `${completedWords}/${currentWordsCount}`;
+      document.getElementById('active-progress-display').innerHTML = `<span class="text-indigo-400 font-bold">Kata ${activeWordIndex + 1}</span> <span class="text-neutral-500 font-normal text-xs">(${completedWords}/${currentWordsCount})</span>`;
 
       const avg = calculateAverage(roundTimes);
       document.getElementById('active-avg-display').textContent = avg !== null ? `${avg.toFixed(2)} detik` : '0.00 detik';
@@ -1081,6 +1323,59 @@
         `;
         slotsContainer.appendChild(slotBtn);
       }
+
+      // Sync One-Screen Stage Elements
+      const onescreenRoundLabel = document.getElementById('onescreen-round-label');
+      const onescreenLimitLabel = document.getElementById('onescreen-limit-label');
+      const onescreenPNo = document.getElementById('onescreen-p-no');
+      const onescreenPName = document.getElementById('onescreen-p-name');
+      const onescreenWordStatus = document.getElementById('onescreen-word-status');
+      const onescreenAvgText = document.getElementById('onescreen-avg-text');
+
+      if (onescreenRoundLabel) onescreenRoundLabel.textContent = `Babak ${currentRound}`;
+      if (onescreenLimitLabel) onescreenLimitLabel.textContent = `${appConfig.limits[currentRound].toFixed(1)} detik`;
+      if (onescreenPNo) onescreenPNo.textContent = p ? `#${p.no}` : '-';
+      if (onescreenPName) onescreenPName.textContent = p ? p.name : '(Belum ada peserta)';
+      if (onescreenWordStatus) onescreenWordStatus.textContent = `Kata ${activeWordIndex + 1} dari ${currentWordsCount}`;
+      if (onescreenAvgText) onescreenAvgText.textContent = avg !== null ? `Rata-rata: ${avg.toFixed(2)} detik` : 'Rata-rata: 0.00 detik';
+
+      const onescreenSlots = document.getElementById('onescreen-word-slots');
+      if (onescreenSlots) {
+        onescreenSlots.innerHTML = '';
+        for (let i = 0; i < currentWordsCount; i++) {
+          const timeVal = roundTimes[i];
+          const isSelected = (i === activeWordIndex);
+          const hasValue = (timeVal !== undefined && timeVal !== null);
+          const limitSec = appConfig.limits[currentRound];
+          const isOverLimit = hasValue && (timeVal / 1000 > limitSec);
+
+          const slotBtn = document.createElement('button');
+          slotBtn.onclick = () => selectWordSlot(i);
+
+          let borderClass = isSelected ? 'border-indigo-500 ring-1 ring-indigo-500/40' : 'border-neutral-850 hover:border-neutral-750';
+          let bgClass = isSelected ? 'bg-indigo-950/40' : 'bg-[#070707]';
+
+          let badgeHtml = '';
+          if (hasValue) {
+            const sec = (timeVal / 1000).toFixed(2);
+            if (isOverLimit) {
+              badgeHtml = `<span class="text-rose-400 font-mono font-bold text-sm sm:text-base">${sec} detik</span>`;
+            } else {
+              badgeHtml = `<span class="text-emerald-400 font-mono font-bold text-sm sm:text-base">${sec} detik</span>`;
+            }
+          } else {
+            badgeHtml = `<span class="text-neutral-600 font-mono text-sm sm:text-base">-</span>`;
+          }
+
+          slotBtn.className = `p-3 rounded-md border ${borderClass} ${bgClass} transition flex flex-col items-center justify-center text-center cursor-pointer shadow-sm`;
+          slotBtn.title = `Klik untuk merekam Kata ${i + 1}`;
+          slotBtn.innerHTML = `
+            <span class="text-xs font-semibold ${isSelected ? 'text-indigo-300' : 'text-neutral-400'}">Kata ${i + 1}</span>
+            ${badgeHtml}
+          `;
+          onescreenSlots.appendChild(slotBtn);
+        }
+      }
     }
 
     function selectWordSlot(index) {
@@ -1114,6 +1409,16 @@
       const text = document.getElementById('btn-toggle-text');
       if (text) text.textContent = "Stop & simpan";
 
+      // Sync One-Screen Stage Toggle Button
+      const onescreenBtn = document.getElementById('onescreen-btn-toggle');
+      if (onescreenBtn) {
+        onescreenBtn.className = "flex-1 py-3 px-6 sm:px-8 rounded-md font-bold text-sm sm:text-base transition-all duration-150 transform active:scale-95 shadow-lg bg-rose-600 hover:bg-rose-500 text-white shadow-rose-600/30 flex items-center justify-center gap-2 min-w-[150px]";
+      }
+      const onescreenIcon = document.getElementById('onescreen-btn-toggle-icon');
+      if (onescreenIcon) onescreenIcon.textContent = "■";
+      const onescreenText = document.getElementById('onescreen-btn-toggle-text');
+      if (onescreenText) onescreenText.textContent = "Stop & simpan";
+
       broadcastStageState();
 
       timerInterval = setInterval(() => {
@@ -1135,6 +1440,16 @@
       if (icon) icon.textContent = "▶";
       const text = document.getElementById('btn-toggle-text');
       if (text) text.textContent = "Mulai";
+
+      // Sync One-Screen Stage Toggle Button
+      const onescreenBtn = document.getElementById('onescreen-btn-toggle');
+      if (onescreenBtn) {
+        onescreenBtn.className = "flex-1 py-3 px-6 sm:px-8 rounded-md font-bold text-sm sm:text-base transition-all duration-150 transform active:scale-95 shadow-lg bg-emerald-600 hover:bg-emerald-500 text-white shadow-emerald-600/30 flex items-center justify-center gap-2 min-w-[150px]";
+      }
+      const onescreenIcon = document.getElementById('onescreen-btn-toggle-icon');
+      if (onescreenIcon) onescreenIcon.textContent = "▶";
+      const onescreenText = document.getElementById('onescreen-btn-toggle-text');
+      if (onescreenText) onescreenText.textContent = "Mulai";
 
       if (saveResult) {
         saveRecordedTime(timerElapsedMs);
@@ -1200,6 +1515,18 @@
       const overtimeDiff = document.getElementById('overtime-diff');
       const glowBackdrop = document.getElementById('glow-backdrop');
 
+      // One-Screen Stage Elements
+      const onescreenTimerEl = document.getElementById('onescreen-timer-display');
+      if (onescreenTimerEl) onescreenTimerEl.textContent = formatted;
+
+      const onescreenStatusDiff = document.getElementById('onescreen-status-diff');
+      const onescreenAmbientGlow = document.getElementById('onescreen-ambient-glow');
+      const onescreenTimerCard = document.getElementById('onescreen-timer-card');
+      const onescreenLimitLabel = document.getElementById('onescreen-limit-label');
+      if (onescreenLimitLabel) onescreenLimitLabel.textContent = `${currentLimit.toFixed(1)} detik`;
+
+      const currentWordsCount = appConfig.wordsCount[currentRound];
+
       if (totalSeconds > currentLimit) {
         const overBy = (totalSeconds - currentLimit).toFixed(2);
         timerEl.classList.remove('text-white', 'timer-glow-normal');
@@ -1209,16 +1536,34 @@
           pill.className = "mb-2 px-3 py-1 rounded text-xs font-semibold bg-rose-500/20 text-rose-300 border border-rose-500/50 flex items-center gap-1.5 animate-pulse";
         }
         if (pillText) {
-          pillText.innerHTML = `Jebol batas maksimal (> ${currentLimit.toFixed(1)} detik)`;
+          pillText.innerHTML = `<span class="text-rose-300 font-semibold mr-1.5">Kata ${activeWordIndex + 1}</span> | Jebol batas maksimal (> ${currentLimit.toFixed(1)} detik)`;
         }
 
         if (overtimeDiff) {
           overtimeDiff.className = "text-xs sm:text-sm font-semibold text-rose-400 h-6 mt-1 flex items-center justify-center transition-all duration-200";
-          overtimeDiff.textContent = `+${overBy} detik melampaui batas maksimal (${currentLimit.toFixed(1)} detik)`;
+          overtimeDiff.textContent = `Kata ${activeWordIndex + 1}: +${overBy} detik melampaui batas maksimal (${currentLimit.toFixed(1)} detik)`;
         }
 
         if (glowBackdrop) {
           glowBackdrop.className = "absolute -top-24 -left-24 w-72 h-72 bg-rose-500/20 rounded-md blur-3xl pointer-events-none transition-all duration-500";
+        }
+
+        // Sync One-Screen Stage Warning States
+        if (onescreenTimerEl) {
+          onescreenTimerEl.classList.remove('text-white', 'timer-glow-normal');
+          onescreenTimerEl.classList.add('text-rose-500', 'timer-glow-warning');
+        }
+        if (onescreenStatusDiff) {
+          onescreenStatusDiff.className = "text-sm sm:text-xl font-semibold text-rose-400 mt-3 h-7 flex items-center justify-center transition-all duration-200 animate-pulse";
+          onescreenStatusDiff.textContent = `Kata ${activeWordIndex + 1}: +${overBy} detik melampaui batas maksimal (${currentLimit.toFixed(1)} detik)`;
+        }
+        if (onescreenTimerCard) {
+          onescreenTimerCard.classList.remove('border-neutral-850');
+          onescreenTimerCard.classList.add('border-rose-900/60', 'bg-rose-950/15');
+        }
+        if (onescreenAmbientGlow) {
+          onescreenAmbientGlow.classList.remove('bg-indigo-500/[0.06]');
+          onescreenAmbientGlow.classList.add('bg-rose-500/[0.12]');
         }
       } else {
         timerEl.classList.remove('text-rose-500', 'timer-glow-warning');
@@ -1229,22 +1574,46 @@
           pill.className = "mb-2 px-3 py-1 rounded text-xs font-medium bg-neutral-900 text-neutral-300 border border-neutral-800 flex items-center gap-1.5";
         }
         if (pillText) {
-          pillText.innerHTML = `Batas maksimal: <span id="pill-limit-val">${currentLimit.toFixed(1)}</span> detik`;
+          pillText.innerHTML = `<span class="text-indigo-400 font-semibold mr-1.5">Kata ${activeWordIndex + 1} dari ${currentWordsCount}</span> | Batas maksimal: <span id="pill-limit-val">${currentLimit.toFixed(1)}</span> detik`;
         }
 
         if (overtimeDiff) {
           overtimeDiff.className = "text-xs sm:text-sm font-medium text-neutral-400 h-6 mt-1 flex items-center justify-center transition-all duration-200";
           if (ms === 0) {
-            overtimeDiff.textContent = "Siap merekam - Menghitung maju dari 00:00";
+            overtimeDiff.textContent = `Siap merekam kata ${activeWordIndex + 1} dari ${currentWordsCount} - Menghitung maju dari 00:00`;
           } else if (timerRunning) {
-            overtimeDiff.innerHTML = `Waktu aman - <span class="font-mono text-emerald-400 font-semibold mx-1">${remaining} detik</span> tersisa`;
+            overtimeDiff.innerHTML = `Merekam kata ${activeWordIndex + 1} - Waktu aman <span class="font-mono text-emerald-400 font-semibold mx-1">${remaining} detik</span> tersisa`;
           } else {
-            overtimeDiff.innerHTML = `Durasi tersimpan - Batas aman (${currentLimit.toFixed(1)} detik)`;
+            overtimeDiff.innerHTML = `Kata ${activeWordIndex + 1} tersimpan (${(ms / 1000).toFixed(2)} detik) - Batas aman (${currentLimit.toFixed(1)} detik)`;
           }
         }
 
         if (glowBackdrop) {
           glowBackdrop.className = `absolute -top-24 -left-24 w-64 h-64 ${timerRunning ? 'bg-emerald-500/10' : 'bg-indigo-500/10'} rounded-md blur-3xl pointer-events-none transition-all duration-500`;
+        }
+
+        // Sync One-Screen Stage Normal States
+        if (onescreenTimerEl) {
+          onescreenTimerEl.classList.remove('text-rose-500', 'timer-glow-warning');
+          onescreenTimerEl.classList.add('text-white', 'timer-glow-normal');
+        }
+        if (onescreenStatusDiff) {
+          onescreenStatusDiff.className = "text-sm sm:text-xl font-medium text-neutral-400 mt-3 h-7 flex items-center justify-center transition-all duration-200";
+          if (ms === 0) {
+            onescreenStatusDiff.textContent = `Siap merekam kata ${activeWordIndex + 1} dari ${currentWordsCount} - Menghitung maju dari 00:00`;
+          } else if (timerRunning) {
+            onescreenStatusDiff.innerHTML = `Merekam kata ${activeWordIndex + 1} - Waktu aman <span class="font-mono text-emerald-400 font-semibold mx-1">${remaining} detik</span> tersisa`;
+          } else {
+            onescreenStatusDiff.innerHTML = `Kata ${activeWordIndex + 1} tersimpan (${(ms / 1000).toFixed(2)} detik) - Batas aman (${currentLimit.toFixed(1)} detik)`;
+          }
+        }
+        if (onescreenTimerCard) {
+          onescreenTimerCard.classList.add('border-neutral-850');
+          onescreenTimerCard.classList.remove('border-rose-900/60', 'bg-rose-950/15');
+        }
+        if (onescreenAmbientGlow) {
+          onescreenAmbientGlow.classList.add('bg-indigo-500/[0.06]');
+          onescreenAmbientGlow.classList.remove('bg-rose-500/[0.12]');
         }
       }
     }
@@ -2295,14 +2664,38 @@
           resetActiveWordTime();
         }
 
-        if (e.key === 'ArrowLeft') {
+        if (e.key === 'ArrowLeft' || e.code === 'ArrowLeft') {
           e.preventDefault();
           navigateParticipant(-1);
         }
 
-        if (e.key === 'ArrowRight') {
+        if (e.key === 'ArrowRight' || e.code === 'ArrowRight') {
           e.preventDefault();
           navigateParticipant(1);
+        }
+
+        if (e.key === 'ArrowUp' || e.code === 'ArrowUp') {
+          e.preventDefault();
+          navigateWordSlot(1);
+        }
+
+        if (e.key === 'ArrowDown' || e.code === 'ArrowDown') {
+          e.preventDefault();
+          navigateWordSlot(-1);
+        }
+
+        if (e.key === 'Escape') {
+          if (isOneScreenStageActive()) {
+            e.preventDefault();
+            exitOneScreenStage();
+          }
+        }
+      });
+
+      document.addEventListener('fullscreenchange', () => {
+        if (!document.fullscreenElement && isOneScreenStageActive()) {
+          // Sync overflow state if user exits browser fullscreen via key
+          document.body.classList.remove('overflow-hidden');
         }
       });
     }
